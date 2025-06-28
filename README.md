@@ -118,13 +118,12 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 
   where $C_p = 1005 J/kg/K$, $L_v = 2.5e6 J/kg$, $E$ is evaporation rate, $T_a$ is atmosphere temperature, and $T_o$ is ocean temperature.
 
-- **Implementation**: `compute_heat_flux` clips $T_a - T_o$ to [-100, 100] $K$ and $Q_{total}$ to [-1e6, 1e6] $W/m^{2}$.
+- **Implementation**: `compute_heat_flux` clips $T_a - T_o$ to $[-100, 100]$ $K$ and $Q_{total}$ to $[-1e6, 1e6]$ $W/m^{2}$.
 
 #### Freshwater Flux
 - **Purpose**: Computes net freshwater flux and salinity change, ensuring mass conservation.
 - **Equations**:
   
-
   $P = P_{0}*(1 + 0.5q/0.01)$
 
   $E = E_{0}*C_{freshwater}(1+0.1S/35)$
@@ -135,7 +134,7 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 
   where $P_{0}$ is precipitation rate, $E_0$ is evaporation rate, $C_{freshwater} is the conservation coefficient, $S$ is salinity, $H$ = 1000 m is ocean depth, and $q$ is moisture.
 
-- **Implementation**: `compute_freshwater_flux` clips q/0.01 to [0, 2], S/35 to [0.8, 1.2], and outputs to [-1e-3, 1e-3].
+- **Implementation**: `compute_freshwater_flux` clips $q/0.01$ to $[0, 2]$, $S/35$ to $[0.8, 1.2]$, and outputs to $[-1e-3, 1e-3]$.
 
 #### CO₂ Flux
 - **Purpose**: Computes CO₂ exchange between ocean and atmosphere, ensuring mass conservation.
@@ -149,7 +148,7 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 
   $F_{CO₂}^{ocean} = F_{CO₂}/H$
 
-  $F_{CO₂}^{atm} = -F_{CO₂}/H_{atm}
+  $F_{CO₂}^{atm} = -F_{CO₂}/H_{atm}$
 
   where $α = 0.03$ is CO₂ solubility, $k_{CO₂}$ is transfer coefficient, $C_{CO₂}$ is conservation coefficient, $H = 1000 m$, and $H_{atm} = 10000 m$.
 - **Implementation**: `compute_co2_flux` clips outputs to [-1e-3, 1e-3].
@@ -169,12 +168,12 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 
   where $k_{m}$ is mixing coefficient, and gradients are computed via central differences.
 
-- **Implementation**: `compute_turbulent_mixing` clips output to [-1e3, 1e3].
+- **Implementation**: `compute_turbulent_mixing` clips output to $[-1e3, 1e3]$.
 
 #### Radiative Flux
 - **Purpose**: Models solar and longwave radiation with greenhouse effects.
-- **Equation**: $Q_{rad} = Q_{solar} - ε * σ * (T / 300)^4 * (1 + 0.1 * log(CO₂_{atm} / 400)) where $σ = 5.67e-8 W/m^{2}/K^{4}, $ε$ is longwave coefficient, and Q_{solar} is solar forcing.
-- **Implementation**: `compute_radiative_flux` clips $T/300$ to [0.8, 1.2], $log(CO₂_{atm}/400)$ to [-1, 1], and output to [-1e6, 1e6] $W/m^2$.
+- **Equation**: $Q_{rad} = Q_{solar} - ε * σ * (T / 300)^4 * (1 + 0.1 * log(CO₂_{atm} / 400))$ where $σ = 5.67e-8 W/m^{2}/K^{4}$, $ε$ is longwave coefficient, and $Q_{solar}$ is solar forcing.
+- **Implementation**: `compute_radiative_flux` clips $T/300$ to $[0.8, 1.2]$, $log(CO₂_{atm}/400)$ to $[-1, 1]$, and output to [-1e6, 1e6] $W/m^2$.
 
 ### 2. Ocean-Atmosphere Model 
 The `OceanAtmosphereModel` integrates physical processes over time.
@@ -231,87 +230,91 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 #### Time Stepping (`HighOrderTimeStepping.py`)
 - **Euler Method**: $y^{n+1} = y^{n} + dt*f(y^{n})$ where $f$ is the flux or diffusivity rate.
 - **RK4 Method**:
+
   $k_1 = f(y^n)$;
+
   $k_2 = f(y^n + dt/2 * k_1)$;
+
   $k_3 = f(y^n + dt/2 * k_2)$;
+
   $k_4 = f(y^n + dt * k_3)$;
+
   $y^{n+1} = y^n + dt/6 * (k_1 + 2 * k_2 + 2 * k_3 + k_4)$
+
 - **Implementation**: `HighOrderTimeSteppingWindow.euler_step` and `rk4_step`.
 
 ### 4. Turbulent Mixing (`TurbulentMixing.py`)
-- **Thermal Front**:
-  T_front = T_cold + (T_hot - T_cold) * 0.5 * (1 + tanh((x - x_0) / L))
-  where T_cold = 290 K, T_hot = 300 K, x_0 = N_x/2 + 10 * sin(0.01 * U * t), and L = 5.
+- **Thermal Front**: $T_{front} = T_{cold} + (T_{hot} - T_{cold}) * 0.5 * (1 + tanh((x-x_{0})/L))$ where $T_{cold} = 290 K$, $T_{hot} = 300 K$, $x_{0} = $N_{x}/2 + 10 * sin(0.01 Ut)$, and $L = 5$.
 - **Ekman Spiral**:
-  u = V_0 * e^(z/d) * cos(π/4 + z/d)
-  v = V_0 * e^(z/d) * sin(π/4 + z/d)
-  V_0 = τ / (ρ * sqrt(2 * ν * f))
-  d = sqrt(2 * ν / f)
-  where τ = 0.1 * U^2, ν is mixing coefficient, and f = 1e-4 s^-1.
+
+  $u = V_{0}·e^{z/d}·cos(π/4 + z/d)$
+
+  $v = V_{0}·e^{z/d}·sin(π/4 + z/d)$
+
+  $V_{0} = τ / (ρ*sqrt(2νf))$
+
+  $d = sqrt(2ν/f)$
+
+  where $τ = 0.1U^{2}, $ν$ is mixing coefficient, and $f = 1e-4 s^{-1}$.
+
 - **Vertical Mixing**:
-  dT/dt = K_v * d^2 T/dz^2
-  K_v = ν * e^(z/50)
-  where d^2 T/dz^2 is computed via central differences.
+  
+  $dT/dt = K_{v}·d^{2}T/dz^{2}$
+
+  $K_{v} = ν·e^{z/50}
+  
+  where $d^{2}T/dz^{2}$ is computed via central differences.
+
 - **Implementation**: `update_plot` blends front with ocean temperatures and computes Ekman velocities and temperature profiles.
 
 ### 5. Surface Layer Physics (`SurfaceLayerPhysics.py`)
-- **Sensible Heat Flux**:
-  Q_s = ρ_air * C_p * C_h * U * (T_o - T_a)
-- **Latent Heat Flux**:
-  Q_l = ρ_air * L_v * C_e * U * q
-  where q = 0.001 (placeholder), C_e is latent heat coefficient.
-- **Wind Stress**:
-  τ = ρ_air * C_d * U^2
-- **Surface Currents**:
-  u_s^(n+1) = u_s^n + dt * (τ / 1000) * N(0, ν)
-  where N is Gaussian noise scaled by mixing coefficient.
-- **Implementation**: `update_plot` computes fluxes and updates currents, clipped to [-0.5, 0.5] m/s.
+- **Sensible Heat Flux**: $Q_s = ρ_{air}·C_p·C_h·U(T_o - T_a)$
+- **Latent Heat Flux**: $Q_l = ρ_{air} * L_v * C_e * U * q$ where $q = 0.001$, $C_e$ is latent heat coefficient.
+- **Wind Stress**: $τ = ρ_{air}·C_d·U^2$
+- **Surface Currents**: $u_{s}^{n+1} = u_{s}^{n} + dt*(τ/1000)*N(0, ν)$ where $N$ is Gaussian noise scaled by mixing coefficient.
+- **Implementation**: `update_plot` computes fluxes and updates currents, clipped to $[-0.5, 0.5] m/s$.
 
 ### 6. Air-Sea Interaction (`AirSeaInteraction.py`)
-- **Momentum Flux**:
-  τ = ρ_air * C_d * U^2
-- **Heat Flux**:
-  Q = ρ_air * C_p * C_h * U * (T_o - T_a)
+- **Momentum Flux**: $τ = ρ_{air}·C_{d}·U^{2}$
+- **Heat Flux**: $Q = ρ_{air}·C_{p}·C_{h}·U·(T_o - T_a)$
 - **Implementation**: `update_plot` computes fluxes using `TwoWayCoupling` and visualizes as heatmaps.
 
 ### 7. Cloud Microphysics (`CloudMicroPhysics.py`)
 - **Cloud Formation**:
-  C = 1 if q > q_sat(T_a), else 0
-  q_sat(T) = 0.01 * e^(0.06 * (T - 273.15))
-- **Precipitation**:
-  P = k_p * (q - q_sat(T_a)) if q > q_sat(T_a), else 0
-  where k_p = 0.01.
+
+  $C = 1$ if $q > q_{sat}(T_{a})$, else 0
+
+  $q_{sat}(T) = 0.01·e^{0.06(T-273.15)}$
+
+- **Precipitation**: $P = k_{p}·(q - q_{sat}(T_{a}))$ if $q > q_{sat}(T_{a})$, else 0 where $k_{p} = 0.01$.
 - **Implementation**: `update_plot` computes cloud cover and precipitation based on moisture and temperature.
 
-### 8. Potential Vorticity Frontogenesis (`PotentialVorticityFrontogenesis.py`)
-- **Potential Vorticity**:
-  q = (ζ + f) * (db/dz) / N^2
-  db/dz ≈ b / H_m
-  where ζ is vorticity, f is Coriolis parameter, b is buoyancy, H_m is mixed layer depth, and N^2 is stratification parameter.
+### 8. Potential Vorticity Frontogenesis 
+- **Potential Vorticity**: $q = (ζ + f)*(db/dz)/N^2$; $db/dz ≈ b/H_{m}$ where $ζ$ is vorticity, $f$ is Coriolis parameter, $b$ is buoyancy, $H_{m}$ is mixed layer depth, and $N^{2}$ is stratification parameter.
 - **Frontogenesis**:
-  F = -|∇q|^2 * D
-  q^(n+1) = q^n + 0.1 * F
-  dζ/dt = 0.1 * F
-  where D is deformation rate, and gradients are computed via central differences.
+
+  $F = -|∇q|^{2}·D$
+
+  $q^{n+1} = q^{n} + 0.1*F
+
+  $dζ/dt = 0.1*F$
+
+  where $D$ is deformation rate, and gradients are computed via central differences.
 - **Implementation**: `compute_pv_frontogenesis` updates PV and returns vorticity tendency, clipped to [-0.1, 0.1].
 
 ### 9. Adaptive Mesh Refinement (`AdaptiveMeshRefinement.py`)
-- **Refinement Criterion**:
-  |∇T|^2 = (∂T/∂x)^2 + (∂T/∂y)^2 > threshold
-  or
-  ζ = ∂v/∂x - ∂u/∂y > vorticity_threshold
+- **Refinement Criterion**: $|∇T|^2 = (∂T/∂x)^2 + (∂T/∂y)^2 > threshold$ or $ζ = ∂v/∂x - ∂u/∂y > vorticity_{threshold}$
 - **Nested Grid**:
-  - Places a finer grid (size N/4) at the region with maximum gradient or vorticity.
+  - Places a finer grid (size $N/4$) at the region with maximum gradient or vorticity.
 - **Implementation**: `refine_grid` computes gradients/vorticity and sets a refinement mask.
 
 ### 10. Variable Resolution Grid (`VariableResolution.py`)
-- **Spatial Steps**:
-  dx_i,j = dy_i,j = 1 / coast_factor if i < N/4 or j < N/4, else 1
+- **Spatial Steps**: $dx_{i,j} = dy_{i,j} = 1 / coast factor$ if $i < N/4$ or $j < N/4$, else 1
 - **Implementation**: `VariableResolutionGrid` initializes finer resolution near coasts.
 
-## Algorithms
+## Algorithmen (Algorithms)
 
-### Main Simulation Loop (`MainApp.py`, `Model.py`)
+### Main Simulation Loop 
 1. Initialize `OceanAtmosphereModel` with parameters from `ControlPanel`.
 2. Start QTimer to call `step_simulation` every 100 ms.
 3. In each step:
@@ -321,26 +324,29 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 
 ### Advection and Diffusion (`Model.py`)
 - **Advection**:
-  ∂φ/∂t = -u · ∇φ
-  ∂φ/∂x ≈ (φ_(i+1,j) - φ_(i-1,j)) / (2 * dx_i,j)
+
+  $∂φ/∂t = -u·∇φ$
+
+  $∂φ/∂x ≈ (φ_{i+1,j} - φ_{i-1,j}) / (2*dx_{i,j})$
+
   - Uses central differences for spatial derivatives.
 - **Diffusion**:
-  ∂φ/∂t = k * ∇^2 φ
-  ∇^2 φ ≈ (φ_(i+1,j) - 2 * φ_i,j + φ_(i-1,j)) / dx_i,j^2 + (φ_(i,j+1) - 2 * φ_i,j + φ_(i,j-1)) / dy_i,j^2
-  - Applies diffusion to stabilize numerical solutions.
+  $∂φ/∂t = k·∇^2·φ$
+
+  $∇^{2}·φ ≈ (φ_{i+1,j} - 2φ_{i,j} + φ_{i-1,j})/dx_{i,j^{2}} + (φ_{i,j+1} - 2φ_{i,j} + φ_{i,j-1})/dy_{i,j^{2}}$
+
+   - Applies diffusion to stabilize numerical solutions.
 
 ### Time Stepping for Boundary Layers (`HighOrderTimeStepping.py`)
-- **Euler**:
-  - Single-step update using current rate.
-- **RK4**:
-  - Computes four intermediate slopes (k_1, k_2, k_3, k_4) and combines them for higher accuracy.
+- **Euler**: Single-step update using current rate.
+- **RK4**: Computes four intermediate slopes ($k_1$, $k_2$, $k_3$, $k_4$) and combines them for higher accuracy.
 
 ### Turbulent Mixing Simulation (`TurbulentMixing.py`)
-1. Initialize a thermal front and vertical grid (z) for the Ekman spiral.
-2. Update temperature field: T = 0.8 * T_o + 0.2 * T_front.
+1. Initialize a thermal front and vertical grid ($z$) for the Ekman spiral.
+2. Update temperature field: $T = 0.8T_{o} + 0.2T_{front}$.
 3. Compute mixing field using `TwoWayCoupling.compute_turbulent_mixing`.
 4. Update vertical temperature profile with diffusion.
-5. Compute Ekman spiral velocities (u, v).
+5. Compute Ekman spiral velocities ($u, v$).
 6. Visualize thermal front (contour) and vertical profiles (line plots).
 
 ### Surface Layer Physics Simulation (`SurfaceLayerPhysics.py`)
@@ -362,88 +368,4 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 2. Compute PV gradients and frontogenesis term.
 3. Update PV and return vorticity tendency.
 
-## 4. Algorithms
 
-### 4.1 Main Simulation Loop (`Model.py`)
-- **Algorithm**:
-  1. Initialize fields (temperature, salinity, velocities, etc.) using `VariableResolutionGrid` and `AdaptiveMeshRefinement`.
-  2. For each time step:
-     - Compute fluxes using `TwoWayCoupling`.
-     - Update atmosphere fields (`dt_atm`) with advection, diffusion, and radiative flux.
-     - Update ocean fields (`dt_ocean`) with advection, diffusion, and turbulent mixing.
-     - Refine grid using `AdaptiveMeshRefinement` based on gradients and vorticity.
-     - Clip fields for stability.
-
-### 4.2 Eddy Simulation (`OceanicEddyAndFront.py`)
-- **Algorithm** (`update_simulation`):
-  1. Compute time step `dt` ensuring CFL condition: dt <= 0.5 * dx / max_velocity.
-  2. Update eddy positions using induced velocities (`compute_induced_velocity`) and background flow.
-  3. Update coarse grid vorticity:
-     - Apply decay: zeta *= exp(-decay_rate * dt)
-     - Recompute eddy vorticity with ageostrophic correction.
-     - Add diffusion: zeta += vorticity_diffusion * dt * Laplacian(zeta)
-     - Add strain: zeta -= strain_rate * dt * (X * grad_x(zeta) + Y * grad_y(zeta))
-     - Add background flow: zeta += background_flow * (Y * 0.1)
-     - Apply instabilities (baroclinic, barotropic, MLI, PV frontogenesis) if enabled.
-  4. Update fine grids for strong eddies:
-     - Compute vorticity and instabilities on finer grid.
-     - Apply diffusion and strain.
-     - Interpolate to coarse grid.
-  5. Update non-hydrostatic, density, shear, buoyancy, and PV fields if enabled.
-  6. Clip fields for stability.
-
-### 4.3 Adaptive Mesh Refinement (`AdaptiveMeshRefinement.py`)
-- **Algorithm**:
-  1. Compute temperature gradients and vorticity.
-  2. Identify refinement regions where gradients or vorticity exceed threshold.
-  3. Create nested grids (`NestedGrid`) with higher resolution.
-  4. Interpolate coarse grid data to nested grids.
-  5. Update nested grids with same physics as coarse grid.
-  6. Interpolate back to coarse grid.
-
-### 4.4 Turbulent Mixing (`TurbulentMixing.py`)
-- **Algorithm**:
-  1. Initialize thermal front with tanh profile.
-  2. Compute Ekman spiral velocities using wind stress and mixing coefficient.
-  3. Update vertical temperature profile with diffusion.
-  4. Use `TwoWayCoupling.compute_turbulent_mixing` for mixing terms.
-
-### 4.5 Surface Layer Physics (`SurfaceLayerPhysics.py`)
-- **Algorithm**:
-  1. Compute sensible and latent heat fluxes using `TwoWayCoupling`.
-  2. Compute wind stress and update surface currents.
-  3. Track mean fluxes and currents over time.
-
-### 4.6 Cloud Microphysics (`CloudMicroPhysics.py`)
-- **Algorithm**:
-  1. Compute cloud fraction from moisture.
-  2. Calculate precipitation from cloud fraction and moisture.
-  3. Update moisture with precipitation and diffusion.
-
-### 4.7 Air-Sea Interaction (`AirSeaInteraction.py`)
-- **Algorithm**:
-  1. Compute momentum and heat fluxes using `TwoWayCoupling`.
-  2. Calculate coupling strength based on heat flux and temperature difference.
-  3. Update fields and track coupling strength.
-
-### 4.8 Boundary Layer Schemes (`BoundaryLayerSchemes.py`, `HighOrderTimeStepping.py`)
-- **Algorithm**:
-  1. For Bulk scheme: Compute heat flux using bulk formula.
-  2. For KPP scheme: Compute diffusivity profile and apply to temperature.
-  3. Apply Euler or RK4 time-stepping to update fields.
-
-### 4.9 Potential Vorticity Frontogenesis (`PotentialVorticityFrontogenesis.py`)
-- **Algorithm**:
-  1. Initialize PV field using vorticity, buoyancy, and stratification.
-  2. Compute vorticity tendency from PV gradients and deformation rate.
-  3. Update PV and vorticity, clipping for stability.
-
-## 5. Integration Across Modules
-
-- **MainApp.py** coordinates `Model.py`, `PlotWidget.py`, and analysis modules, using `ControlPanel.py` for parameter input.
-- **Model.py** integrates `TwoWayCoupling`, `VariableResolution`, and `AdaptiveMeshRefinement` for the core simulation.
-- **TwoWayCoupling.py** provides fluxes and mixing for `Model.py`, `TurbulentMixing.py`, `SurfaceLayerPhysics.py`, `HighOrderTimeStepping.py`, and `AirSeaInteraction.py`.
-- **OceanicEddyAndFront.py** uses `PotentialVorticityFrontogenesis.py` concepts for PV calculations and supports independent eddy simulations.
-- **Analysis Modules** (`TurbulentMixing.py`, `SurfaceLayerPhysics.py`, etc.) extract data from `Model.py` or run standalone simulations, leveraging `TwoWayCoupling` for physics.
-
-This documentation covers the core functionalities, simulation logic, physics and mathematical models, and algorithms, focusing on the requested aspects and incorporating all provided modules, including `OceanicEddyAndFront.py`.
