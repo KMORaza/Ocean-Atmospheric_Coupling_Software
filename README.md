@@ -145,89 +145,97 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 
   $pCO₂_{atm} = CO₂_{atm}$
 
-  $F_{CO₂} = k_{CO₂}*C_{CO₂}*(pCO₂_{ocean}-pCO₂_{atm})$
+  $F_{CO₂} = k_{CO₂}C_{CO₂}(pCO₂_{ocean}-pCO₂_{atm})$
 
-  $F_{CO₂}_{ocean} = F_{CO₂}/H$
+  $F_{CO₂}^{ocean} = F_{CO₂}/H$
 
-  $F_{CO₂}_{atm} = -F_{CO₂}/H_{atm}
+  $F_{CO₂}^{atm} = -F_{CO₂}/H_{atm}
 
-  where α = 0.03 is CO₂ solubility, k_CO₂ is transfer coefficient, C_CO₂ is conservation coefficient, H = 1000 m, and H_atm = 10000 m.
+  where $α = 0.03$ is CO₂ solubility, $k_{CO₂}$ is transfer coefficient, $C_{CO₂}$ is conservation coefficient, $H = 1000 m$, and $H_{atm} = 10000 m$.
 - **Implementation**: `compute_co2_flux` clips outputs to [-1e-3, 1e-3].
 
 #### Moisture Advection
 - **Purpose**: Computes moisture transport in the atmosphere.
-- **Equation**:
-  Advection = -u_a * ∂q/∂x - v_a * ∂q/∂y
-  where u_a, v_a are atmosphere velocities, and ∂q/∂x, ∂q/∂y are computed via central differences.
+- **Equation**: $Advection$ = $-u_a * ∂q/∂x - v_a * ∂q/∂y$ where $u_a$, $v_a$ are atmosphere velocities, and $∂q/∂x$, $∂q/∂y$ are computed via central differences.
 - **Implementation**: `compute_moisture_advection` uses finite differences and clips output to [-1e-4, 1e-4].
 
 #### Turbulent Mixing
 - **Purpose**: Models mixing driven by temperature gradients and wind.
 - **Equation**:
-  M = k_m * u_* * (∂T/∂x + ∂T/∂y)
-  u_* = sqrt(ρ_air * C_d * U^2 / ρ_water)
-  where k_m is mixing coefficient, and gradients are computed via central differences.
+
+  $M = k_{m} * u_* (∂T/∂x + ∂T/∂y)$
+
+  $u_* = sqrt(ρ_{air} * C_{d} * U^{2} / ρ_{water})$
+
+  where $k_{m}$ is mixing coefficient, and gradients are computed via central differences.
+
 - **Implementation**: `compute_turbulent_mixing` clips output to [-1e3, 1e3].
 
 #### Radiative Flux
 - **Purpose**: Models solar and longwave radiation with greenhouse effects.
-- **Equation**:
-  Q_rad = Q_solar - ε * σ * (T / 300)^4 * (1 + 0.1 * log(CO₂_atm / 400))
-  where σ = 5.67e-8 W/m^2/K^4, ε is longwave coefficient, and Q_solar is solar forcing.
-- **Implementation**: `compute_radiative_flux` clips T/300 to [0.8, 1.2], log(CO₂_atm/400) to [-1, 1], and output to [-1e6, 1e6] W/m^2.
+- **Equation**: $Q_{rad} = Q_{solar} - ε * σ * (T / 300)^4 * (1 + 0.1 * log(CO₂_{atm} / 400)) where $σ = 5.67e-8 W/m^{2}/K^{4}, $ε$ is longwave coefficient, and Q_{solar} is solar forcing.
+- **Implementation**: `compute_radiative_flux` clips $T/300$ to [0.8, 1.2], $log(CO₂_{atm}/400)$ to [-1, 1], and output to [-1e6, 1e6] $W/m^2$.
 
-### 2. Ocean-Atmosphere Model (`Model.py`)
+### 2. Ocean-Atmosphere Model 
 The `OceanAtmosphereModel` integrates physical processes over time.
 
 #### Initialization
 - Sets up a 2D grid (N x N) with initial conditions:
-  T_o = T_base + ΔT * sin(2 * π * y / N)
-  T_a = T_o - 5
-  S = S_0
-  q = q_0
-  CO₂_ocean = CO₂_atm = C_0
-  where T_o is ocean temperature, T_a is atmosphere temperature, S is salinity, q is moisture, and velocities are initialized to zero.
+
+  $T_o = T_{base} + ΔT*sin(2πy/N)$
+
+  $T_a = T_o - 5$
+
+  $S = S_0$
+
+  $q = q_0$
+
+  $CO₂_{ocean} = CO₂_{atm} = C_{0}$
+
+  where $T_o$ is ocean temperature, $T_a$ is atmosphere temperature, $S$ is salinity, $q$ is moisture, and velocities are initialized to zero.
 
 #### Time Stepping
 - **Ocean Update**:
-  T_o^(n+1) = T_o^n + dt * (-u_o · ∇T_o + k * ∇^2 T_o + (Q_total + Q_rad) / (ρ_water * C_p_water * H))
-  S^(n+1) = S^n + dt * dS/dt
-  u_o^(n+1) = u_o^n + dt * (τ / (ρ_water * H) - f * u_o^⊥ + k * ∇^2 u_o)
-  where k is diffusion coefficient, f = 1e-4 s^-1 is Coriolis parameter, and ∇^2 is computed via central differences.
+  
+  $T_{o}^{n+1} = T_{o}^{n} + dt*(-u_{o}·∇T_{o} + k * ∇^{2}·T_{o} + (Q_{total} + Q_{rad}) / (ρ_{water}*C_{p_{water}} * H))$
+
+  $S^{n+1} = S^n + dt*dS/dt$
+
+  $u_{o}^{n+1} = u_{o}^{n} + dt*(τ/(ρ_{water}H) - f*u_{o}^{⊥} + k·∇^{2}·u_{o})$
+
+  where $k$ is diffusion coefficient, $f = 1e-4 s^{-1}$ is Coriolis parameter, and $∇^2$ is computed via central differences.
 
 - **Atmosphere Update**:
-  T_a^(n+1) = T_a^n + dt/R * (-u_a · ∇T_a + k * ∇^2 T_a - (Q_total + Q_rad) / (ρ_air * C_p_air * H_atm))
-  q^(n+1) = q^n + dt/R * (Advection + k * ∇^2 q + F / H_atm)
-  CO₂_atm^(n+1) = CO₂_atm^n + dt/R * F_CO₂_atm
-  where R is the time scale ratio (default 10).
 
-- **Numerical Stability**: Clips T_o, T_a to [250, 350] K, velocities to [-0.5, 0.5] m/s, and other fields to prevent divergence.
+  $T_{a}^{n+1} = T_{a}^{n} + dt/R*(-u_{a}·∇T_{a} + k·∇^{2}·T_{a} - (Q_{total} + Q_{rad}) / (ρ_{air} * C_{p}^{air} * H_{atm}))$
 
-### 3. Boundary Layer Schemes (`BoundaryLayerSchemes.py`, `HighOrderTimeStepping.py`)
+  $q^{n+1} = q^n + dt/R * (Advection + k·∇^{2}·q + F/H_{atm})$
+
+  $CO₂_{atm}^{n+1} = CO₂_{atm}^{n} + dt/R * F_{CO₂}^{atm}$
+
+  where $R$ is the time scale ratio.
+
+- **Numerical Stability**: Clips $T_o,$ $T_a$ to $[250, 350] K$, velocities to $[-0.5, 0.5] m/s$, and other fields to prevent divergence.
+
+### 3. Boundary Layer Schemes
 These modules model surface boundary layer processes using Bulk and KPP schemes.
 
 #### Bulk Scheme
-- **Heat Flux**:
-  Q = C_h * U * (T_o - T_a)
-  where C_h is sensible heat coefficient.
+- **Heat Flux**: $Q = C_{h}U(T_o - T_a)$ where $C_h$ is sensible heat coefficient.
 - **Implementation**: `BoundaryLayerSchemesWindow.compute_bulk_flux` and `HighOrderTimeSteppingWindow.compute_bulk`.
 
 #### KPP Scheme
-- **Diffusivity**:
-  K = k_kpp * (1 - z / h)^2
-  where k_kpp is mixing coefficient, z is depth, and h is boundary layer depth.
+- **Diffusivity**: $K = k_{kpp}*(1-z/h)^{2}$ where $k_{kpp}$ is mixing coefficient, $z$ is depth, and $h$ is boundary layer depth.
 - **Implementation**: `BoundaryLayerSchemesWindow.compute_kpp_diffusivity` and `HighOrderTimeSteppingWindow.compute_kpp`.
 
 #### Time Stepping (`HighOrderTimeStepping.py`)
-- **Euler Method**:
-  y^(n+1) = y^n + dt * f(y^n)
-  where f is the flux or diffusivity rate.
+- **Euler Method**: $y^{n+1} = y^{n} + dt*f(y^{n})$ where $f$ is the flux or diffusivity rate.
 - **RK4 Method**:
-  k_1 = f(y^n)
-  k_2 = f(y^n + dt/2 * k_1)
-  k_3 = f(y^n + dt/2 * k_2)
-  k_4 = f(y^n + dt * k_3)
-  y^(n+1) = y^n + dt/6 * (k_1 + 2 * k_2 + 2 * k_3 + k_4)
+  $k_1 = f(y^n)$;
+  $k_2 = f(y^n + dt/2 * k_1)$;
+  $k_3 = f(y^n + dt/2 * k_2)$;
+  $k_4 = f(y^n + dt * k_3)$;
+  $y^{n+1} = y^n + dt/6 * (k_1 + 2 * k_2 + 2 * k_3 + k_4)$
 - **Implementation**: `HighOrderTimeSteppingWindow.euler_step` and `rk4_step`.
 
 ### 4. Turbulent Mixing (`TurbulentMixing.py`)
