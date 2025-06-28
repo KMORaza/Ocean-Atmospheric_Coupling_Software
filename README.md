@@ -88,50 +88,69 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 #### Sea Surface Roughness
 - **Purpose**: Adjusts drag coefficient based on wind and ocean currents.
 - **Equation**:
+  
   $u_* = sqrt(ρ_{air}C_{d}U^{2}/ρ_{water})$
   
   $z_{0} = α(u_{*}^{2} + 0.1(u_{ocean}^{2} + v_{ocean}^{2}))/g$
 
   $C_{d}' = C_{d}(1 + 0.1log10(z_{0}))$
 
-  where $u_{*}$ is friction velocity, $C_{d}$ is drag coefficient, $U$ is wind speed, $ρ_{air} = 1.225 kg/m^{3}$, $ρ_{water} = 1025 kg/m^{3}, $α = 0.018$, $g = 9.81 m/s^{2}, and $z_{0}$ is roughness length.
+  where $u_*$ is friction velocity, $C_{d}$ is drag coefficient, $U$ is wind speed, $ρ_{air} = 1.225 kg/m^{3}$, $ρ_{water} = 1025 kg/m^{3}$, $α = 0.018$, $g = 9.81 m/s^{2}, and $z_{0}$ is roughness length.
+
 - **Implementation**: `compute_sea_surface_roughness` clips $z_0$ to [1e-6, 1e-2] and $C_{d}'$ to [1e-4, 1e-2].
 
 #### Momentum Flux
 - **Purpose**: Computes wind stress on the ocean surface.
-- **Equation**:
-  $τ = ρ_{air}*C_{d}'*U^2$
-  where $C_{d}'$ is the adjusted drag coefficient.
+- **Equation**: $τ = ρ_{air}*C_{d}'*U^2$ where $C_{d}'$ is the adjusted drag coefficient.
 - **Implementation**: `compute_momentum_flux` clips $τ$ to [-1e5, 1e5] $N/m^{2}$.
 
 #### Heat Flux
 - **Purpose**: Computes sensible and latent heat fluxes.
 - **Equations**:
+
   $Q_{sensible} = ρ_{air}C_{p}k_{sensible}(T_{a} - T_{o})$
+
   $k_{sensible} = 0.01 * C_d' / C_d$
+
   $Q_{latent} = ρ_{air}L_{v}E*sign(T_{a} - T_{o})$
+
   $Q_{total} = Q_{sensible} + Q_{latent}$
+
   where $C_p = 1005 J/kg/K$, $L_v = 2.5e6 J/kg$, $E$ is evaporation rate, $T_a$ is atmosphere temperature, and $T_o$ is ocean temperature.
+
 - **Implementation**: `compute_heat_flux` clips $T_a - T_o$ to [-100, 100] $K$ and $Q_{total}$ to [-1e6, 1e6] $W/m^{2}$.
 
 #### Freshwater Flux
 - **Purpose**: Computes net freshwater flux and salinity change, ensuring mass conservation.
 - **Equations**:
+  
+
   $P = P_{0}*(1 + 0.5q/0.01)$
-  $E = E_{0}*C_{freshwater}(1+0.1*S/35)$
-  F = P - E
-  dS/dt = -S * F / (ρ_water * H)
-  where P_0 is precipitation rate, E_0 is evaporation rate, C_freshwater is the conservation coefficient, S is salinity, H = 1000 m is ocean depth, and q is moisture.
+
+  $E = E_{0}*C_{freshwater}(1+0.1S/35)$
+
+  $F = P - E$
+
+  $dS/dt = -S*F/(ρ_{water}*H)$
+
+  where $P_{0}$ is precipitation rate, $E_0$ is evaporation rate, $C_{freshwater} is the conservation coefficient, $S$ is salinity, $H$ = 1000 m is ocean depth, and $q$ is moisture.
+
 - **Implementation**: `compute_freshwater_flux` clips q/0.01 to [0, 2], S/35 to [0.8, 1.2], and outputs to [-1e-3, 1e-3].
 
 #### CO₂ Flux
 - **Purpose**: Computes CO₂ exchange between ocean and atmosphere, ensuring mass conservation.
 - **Equations**:
-  pCO₂_ocean = CO₂_ocean / α
-  pCO₂_atm = CO₂_atm
-  F_CO₂ = k_CO₂ * C_CO₂ * (pCO₂_ocean - pCO₂_atm)
-  F_CO₂_ocean = F_CO₂ / H
-  F_CO₂_atm = -F_CO₂ / H_atm
+  
+  $pCO₂_{ocean} = CO₂_{ocean}/α$
+
+  $pCO₂_{atm} = CO₂_{atm}$
+
+  $F_{CO₂} = k_{CO₂}*C_{CO₂}*(pCO₂_{ocean}-pCO₂_{atm})$
+
+  $F_{CO₂}_{ocean} = F_{CO₂}/H$
+
+  $F_{CO₂}_{atm} = -F_{CO₂}/H_{atm}
+
   where α = 0.03 is CO₂ solubility, k_CO₂ is transfer coefficient, C_CO₂ is conservation coefficient, H = 1000 m, and H_atm = 10000 m.
 - **Implementation**: `compute_co2_flux` clips outputs to [-1e-3, 1e-3].
 
