@@ -89,8 +89,11 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 - **Purpose**: Adjusts drag coefficient based on wind and ocean currents.
 - **Equation**:
   $u_* = sqrt(ρ_{air}C_{d}U^{2}/ρ_{water})$
+  
   $z_{0} = α(u_{*}^{2} + 0.1(u_{ocean}^{2} + v_{ocean}^{2}))/g$
+
   $C_{d}' = C_{d}(1 + 0.1log10(z_{0}))$
+
   where $u_{*}$ is friction velocity, $C_{d}$ is drag coefficient, $U$ is wind speed, $ρ_{air} = 1.225 kg/m^{3}$, $ρ_{water} = 1025 kg/m^{3}, $α = 0.018$, $g = 9.81 m/s^{2}, and $z_{0}$ is roughness length.
 - **Implementation**: `compute_sea_surface_roughness` clips $z_0$ to [1e-6, 1e-2] and $C_{d}'$ to [1e-4, 1e-2].
 
