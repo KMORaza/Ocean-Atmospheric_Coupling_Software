@@ -261,7 +261,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   
   $dT/dt = K_{v}·d^{2}T/dz^{2}$
 
-  $K_{v} = ν·e^{z/50}
+  $K_{v} = ν·e^{z/50}$
   
   where $d^{2}T/dz^{2}$ is computed via central differences.
 
@@ -295,7 +295,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 
   $F = -|∇q|^{2}·D$
 
-  $q^{n+1} = q^{n} + 0.1*F
+  $q^{n+1} = q^{n} + 0.1*F$
 
   $dζ/dt = 0.1*F$
 
