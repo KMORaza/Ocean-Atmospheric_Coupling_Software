@@ -1,0 +1,695 @@
+import numpy as np
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QGroupBox, QFormLayout, QWidget, QMessageBox, QSizePolicy, QCheckBox
+from PyQt5.QtGui import QFont, QPainter, QImage, QPen, QBrush, QColor
+from PyQt5.QtCore import Qt, QTimer
+import logging
+from datetime import datetime
+
+# Setup logging
+logging.basicConfig(filename='debug.log', level=logging.DEBUG, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+class EddySimulationWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMinimumSize(400, 400)
+        self.image = QImage(400, 400, QImage.Format_RGB32)
+        self.image.fill(Qt.white)
+        self.vorticity = None
+        self.grid_size = 100
+        self.time = 0.0
+        self.eddy_centers = []
+        self.eddy_strengths = []
+        self.eddy_radii = []
+        self.fine_grids = []
+        self.fine_grid_size = 20
+        self.refinement_factor = 4
+        self.vertical_velocity = None  # For non-hydrostatic dynamics
+        self.pressure_perturbation = None  # For non-hydrostatic dynamics
+
+    def initialize_field(self, grid_size, eddy_strength, eddy_radius, num_eddies, refinement_threshold, refinement_factor, coriolis_param, rossby_number, enable_nonhydrostatic, grid_spacing_km):
+        self.grid_size = grid_size
+        self.refinement_factor = refinement_factor
+        self.enable_nonhydrostatic = enable_nonhydrostatic
+        self.grid_spacing_km = grid_spacing_km
+        x = np.linspace(-1, 1, grid_size)
+        y = np.linspace(-1, 1, grid_size)
+        X, Y = np.meshgrid(x, y)
+        self.vorticity = np.zeros((grid_size, grid_size))
+        
+        # Initialize non-hydrostatic fields if enabled and scale < 1 km
+        if self.enable_nonhydrostatic and grid_spacing_km < 1.0:
+            self.vertical_velocity = np.zeros((grid_size, grid_size))
+            self.pressure_perturbation = np.zeros((grid_size, grid_size))
+        
+        # Initialize eddies with ageostrophic effects
+        self.eddy_centers = []
+        self.eddy_strengths = []
+        self.eddy_radii = []
+        self.fine_grids = []
+        np.random.seed(42)
+        for _ in range(num_eddies):
+            x0 = np.random.uniform(-0.8, 0.8)
+            y0 = np.random.uniform(-0.8, 0.8)
+            strength = eddy_strength * np.random.uniform(0.8, 1.2)
+            radius = eddy_radius * np.random.uniform(0.8, 1.2)
+            self.eddy_centers.append([x0, y0])
+            self.eddy_strengths.append(strength)
+            self.eddy_radii.append(radius)
+            r = np.sqrt((X - x0)**2 + (Y - y0)**2)
+            vortex = np.where(r < radius, strength * (r / radius), strength * (radius / r))
+            # Apply ageostrophic correction (Coriolis effect)
+            ageostrophicbud = strength * np.exp(-r**2 / (2 * radius**2)) * (1 - rossby_number * np.tanh(r / radius))
+            self.vorticity += vortex * np.exp(-r**2 / (2 * radius**2))
+            
+            if self.enable_nonhydrostatic and grid_spacing_km < 1.0:
+                # Initialize vertical velocity and pressure for non-hydrostatic effects
+                w = strength * 0.1 * np.exp(-r**2 / (radius**2)) * np.sin(np.arctan2(Y - y0, X - x0))
+                p = strength * 0.05 * np.exp(-r**2 / (radius**2))  # Pressure perturbation
+                self.vertical_velocity += w
+                self.pressure_perturbation += p
+        
+        # Initialize fine grid patches
+        self.fine_grid_size = max(10, grid_size // 5)
+        for (x0, y0), strength, radius in zip(self.eddy_centers, self.eddy_strengths, self.eddy_radii):
+            if abs(strength) > refinement_threshold:
+                fine_grid = np.zeros((self.fine_grid_size * refinement_factor, self.fine_grid_size * refinement_factor))
+                fine_x = np.linspace(x0 - radius, x0 + radius, self.fine_grid_size * refinement_factor)
+                fine_y = np.linspace(y0 - radius, y0 + radius, self.fine_grid_size * refinement_factor)
+                fine_X, fine_Y = np.meshgrid(fine_x, fine_y)
+                r = np.sqrt((fine_X - x0)**2 + (fine_Y - y0)**2)
+                vortex = np.where(r < radius, strength * (r / radius), strength * (radius / r))
+                fine_vorticity = vortex * np.exp(-r**2 / (2 * radius**2))
+                fine_grid_dict = {'vorticity': fine_vorticity, 'center': [x0, y0], 'radius': radius}
+                
+                if self.enable_nonhydrostatic and grid_spacing_km < 1.0:
+                    fine_w = strength * 0.1 * np.exp(-r**2 / (radius**2)) * np.sin(np.arctan2(fine_Y - y0, fine_X - x0))
+                    fine_p = strength * 0.05 * np.exp(-r**2 / (radius**2))
+                    fine_grid_dict['vertical_velocity'] = fine_w
+                    fine_grid_dict['pressure_perturbation'] = fine_p
+                
+                self.fine_grids.append(fine_grid_dict)
+        
+        self.update_visualization()
+
+    def compute_induced_velocity(self, x, y, eddy_centers, eddy_strengths, coriolis_param, rossby_number):
+        """Compute velocity at (x, y) with ageostrophic effects."""
+        u, v = 0.0, 0.0
+        for (x0, y0), strength in zip(eddy_centers, eddy_strengths):
+            r_squared = (x - x0)**2 + (y - y0)**2
+            if r_squared > 1e-6:
+                u_geo = -strength * (y - y0) / (2 * np.pi * r_squared)
+                v_geo = strength * (x - x0) / (2 * np.pi * r_squared)
+                # Ageostrophic correction (Coriolis and centrifugal effects)
+                u_ageo = -rossby_number * v_geo
+                v_ageo = rossby_number * u_geo
+                u += u_geo + coriolis_param * u_ageo
+                v += v_geo + coriolis_param * v_ageo
+        return u, v
+
+    def compute_nonhydrostatic_effects(self, vorticity, grid_spacing_km):
+        """Compute non-hydrostatic vertical velocity and pressure perturbation."""
+        if not self.enable_nonhydrostatic or grid_spacing_km >= 1.0:
+            return np.zeros_like(vorticity), np.zeros_like(vorticity)
+        
+        w = np.zeros_like(vorticity)
+        p = np.zeros_like(vorticity)
+        dx = 2.0 / self.grid_size
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                # Vertical velocity from continuity equation (divergence of horizontal velocity)
+                u_x = (np.roll(vorticity, -1, axis=1) - np.roll(vorticity, 1, axis=1)) / (2 * dx)
+                v_y = (np.roll(vorticity, -1, axis=0) - np.roll(vorticity, 1, axis=0)) / (2 * dx)
+                w[i, j] = -0.1 * (u_x + v_y)  # Simplified continuity
+                # Pressure perturbation from non-hydrostatic momentum equation
+                p[i, j] = -0.05 * vorticity[i, j]  # Simplified pressure solver
+        return w, p
+
+    def get_simulation_data(self):
+        """Collect simulation data for export."""
+        data = []
+        data.append(f"Simulation Time: {self.time:.2f} s")
+        data.append(f"Grid Size: {self.grid_size}")
+        data.append(f"Number of Eddies: {len(self.eddy_centers)}")
+        data.append(f"Refinement Factor: {self.refinement_factor}")
+        data.append(f"Non-Hydrostatic: {self.enable_nonhydrostatic}")
+        data.append(f"Grid Spacing: {self.grid_spacing_km:.2f} km")
+        data.append("\nEddy Information:")
+        for i, (center, strength, radius) in enumerate(zip(self.eddy_centers, self.eddy_strengths, self.eddy_radii)):
+            data.append(f"Eddy {i+1}: Center=({center[0]:.3f}, {center[1]:.3f}), Strength={strength:.3f}, Radius={radius:.3f}")
+        
+        data.append("\nCoarse Grid Vorticity Statistics:")
+        if self.vorticity is not None:
+            data.append(f"Min Vorticity: {np.min(self.vorticity):.3f}")
+            data.append(f"Max Vorticity: {np.max(self.vorticity):.3f}")
+            data.append(f"Mean Vorticity: {np.mean(self.vorticity):.3f}")
+            data.append(f"Std Vorticity: {np.std(self.vorticity):.3f}")
+            grad_x = (np.roll(self.vorticity, -1, axis=1) - np.roll(self.vorticity, 1, axis=1)) / (2 * 2/self.grid_size)
+            grad_y = (np.roll(self.vorticity, -1, axis=0) - np.roll(self.vorticity, 1, axis=0)) / (2 * 2/self.grid_size)
+            grad_magnitude = np.sqrt(grad_x**2 + grad_y**2)
+            data.append(f"Max Vorticity Gradient: {np.max(grad_magnitude):.3f}")
+        
+        if self.enable_nonhydrostatic and self.grid_spacing_km < 1.0:
+            data.append("\nCoarse Grid Non-Hydrostatic Statistics:")
+            data.append(f"Min Vertical Velocity: {np.min(self.vertical_velocity):.3f}")
+            data.append(f"Max Vertical Velocity: {np.max(self.vertical_velocity):.3f}")
+            data.append(f"Mean Vertical Velocity: {np.mean(self.vertical_velocity):.3f}")
+            data.append(f"Min Pressure Perturbation: {np.min(self.pressure_perturbation):.3f}")
+            data.append(f"Max Pressure Perturbation: {np.max(self.pressure_perturbation):.3f}")
+        
+        data.append("\nFine Grid Statistics:")
+        for i, fine_grid_info in enumerate(self.fine_grids):
+            fine_vorticity = fine_grid_info['vorticity']
+            x0, y0 = fine_grid_info['center']
+            radius = fine_grid_info['radius']
+            data.append(f"Fine Grid {i+1}: Center=({x0:.3f}, {y0:.3f}), Radius={radius:.3f}")
+            data.append(f"  Min Vorticity: {np.min(fine_vorticity):.3f}")
+            data.append(f"  Max Vorticity: {np.max(fine_vorticity):.3f}")
+            data.append(f"  Mean Vorticity: {np.mean(fine_vorticity):.3f}")
+            data.append(f"  Std Vorticity: {np.std(fine_vorticity):.3f}")
+            grad_fine_x = (np.roll(fine_vorticity, -1, axis=1) - np.roll(fine_vorticity, 1, axis=1)) / (2 * 2/(self.fine_grid_size * self.refinement_factor))
+            grad_fine_y = (np.roll(fine_vorticity, -1, axis=0) - np.roll(fine_vorticity, 1, axis=0)) / (2 * 2/(self.fine_grid_size * self.refinement_factor))
+            grad_fine = np.sqrt(grad_fine_x**2 + grad_fine_y**2)
+            data.append(f"  Max Vorticity Gradient: {np.max(grad_fine):.3f}")
+            if self.enable_nonhydrostatic and self.grid_spacing_km < 1.0:
+                fine_w = fine_grid_info['vertical_velocity']
+                fine_p = fine_grid_info['pressure_perturbation']
+                data.append(f"  Min Vertical Velocity: {np.min(fine_w):.3f}")
+                data.append(f"  Max Vertical Velocity: {np.max(fine_w):.3f}")
+                data.append(f"  Min Pressure Perturbation: {np.min(fine_p):.3f}")
+                data.append(f"  Max Pressure Perturbation: {np.max(fine_p):.3f}")
+        
+        return data
+
+    def update_simulation(self, vorticity_diffusion, rotation_rate, background_flow, decay_rate, refinement_threshold, strain_rate, coriolis_param, rossby_number, enable_nonhydrostatic, grid_spacing_km):
+        if self.vorticity is None:
+            return
+        dt = 0.1
+        self.time += dt
+        x = np.linspace(-1, 1, self.grid_size)
+        X, Y = np.meshgrid(x, x)
+        
+        # Update eddy positions with ageostrophic effects
+        new_centers = []
+        for i, (x0, y0) in enumerate(self.eddy_centers):
+            u_ind, v_ind = self.compute_induced_velocity(x0, y0, 
+                [c for j, c in enumerate(self.eddy_centers) if j != i],
+                [s for j, s in enumerate(self.eddy_strengths) if j != i],
+                coriolis_param, rossby_number)
+            x0 += (background_flow + u_ind) * dt
+            y0 += v_ind * dt
+            if x0 > 1:
+                x0 -= 2
+            new_centers.append([x0, y0])
+        self.eddy_centers = new_centers
+        
+        # Update coarse grid vorticity
+        self.vorticity *= np.exp(-decay_rate * dt)
+        new_vorticity = np.zeros_like(self.vorticity)
+        for (x0, y0), strength, radius in zip(self.eddy_centers, self.eddy_strengths, self.eddy_radii):
+            r = np.sqrt((X - x0)**2 + (Y - y0)**2)
+            vortex = np.where(r < radius, strength * (r / radius), strength * (radius / r))
+            new_vorticity += vortex * np.exp(-r**2 / (2 * radius**2)) * (1 - rossby_number * np.tanh(r / radius))
+        
+        # Add diffusion and strain
+        grad_x = (np.roll(new_vorticity, -1, axis=1) - np.roll(new_vorticity, 1, axis=1)) / (2 * 2/self.grid_size)
+        grad_y = (np.roll(new_vorticity, -1, axis=0) - np.roll(new_vorticity, 1, axis=0)) / (2 * 2/self.grid_size)
+        self.vorticity = new_vorticity + vorticity_diffusion * dt * (
+            np.roll(new_vorticity, 1, axis=0) + 
+            np.roll(new_vorticity, -1, axis=0) +
+            np.roll(new_vorticity, 1, axis=1) +
+            np.roll(new_vorticity, -1, axis=1) - 
+            4 * new_vorticity
+        ) - strain_rate * dt * (X * grad_x + Y * grad_y)
+        self.vorticity += background_flow * (Y * 0.1)
+        
+        # Update non-hydrostatic fields
+        if self.enable_nonhydrostatic and grid_spacing_km < 1.0:
+            self.vertical_velocity, self.pressure_perturbation = self.compute_nonhydrostatic_effects(self.vorticity, grid_spacing_km)
+        
+        # Update fine grid patches
+        self.fine_grids = []
+        for (x0, y0), strength, radius in zip(self.eddy_centers, self.eddy_strengths, self.eddy_radii):
+            if abs(strength) > refinement_threshold:
+                fine_grid = np.zeros((self.fine_grid_size * self.refinement_factor, self.fine_grid_size * self.refinement_factor))
+                fine_x = np.linspace(x0 - radius, x0 + radius, self.fine_grid_size * self.refinement_factor)
+                fine_y = np.linspace(y0 - radius, y0 + radius, self.fine_grid_size * self.refinement_factor)
+                fine_X, fine_Y = np.meshgrid(fine_x, fine_y)
+                r = np.sqrt((fine_X - x0)**2 + (fine_Y - y0)**2)
+                vortex = np.where(r < radius, strength * (r / radius), strength * (radius / r))
+                fine_vorticity = vortex * np.exp(-r**2 / (2 * radius**2)) * (1 - rossby_number * np.tanh(r / radius))
+                fine_grid_dict = {'vorticity': fine_vorticity, 'center': [x0, y0], 'radius': radius}
+                
+                if self.enable_nonhydrostatic and grid_spacing_km < 1.0:
+                    fine_w, fine_p = self.compute_nonhydrostatic_effects(fine_vorticity, grid_spacing_km / self.refinement_factor)
+                    fine_grid_dict['vertical_velocity'] = fine_w
+                    fine_grid_dict['pressure_perturbation'] = fine_p
+                
+                grad_fine_x = (np.roll(fine_vorticity, -1, axis=1) - np.roll(fine_vorticity, 1, axis=1)) / (2 * 2/(self.fine_grid_size * self.refinement_factor))
+                grad_fine_y = (np.roll(fine_vorticity, -1, axis=0) - np.roll(fine_vorticity, 1, axis=0)) / (2 * 2/(self.fine_grid_size * self.refinement_factor))
+                fine_grid = fine_vorticity + (vorticity_diffusion + strain_rate * 0.5) * dt * (
+                    np.roll(fine_vorticity, 1, axis=0) + 
+                    np.roll(fine_vorticity, -1, axis=0) +
+                    np.roll(fine_vorticity, 1, axis=1) +
+                    np.roll(fine_vorticity, -1, axis=1) - 
+                    4 * fine_vorticity
+                ) - strain_rate * dt * (fine_X * grad_fine_x + fine_Y * grad_fine_y)
+                fine_grid_dict['vorticity'] = fine_grid
+                self.fine_grids.append(fine_grid_dict)
+        
+        # Interpolate fine grids to coarse grid
+        for fine_grid_info in self.fine_grids:
+            fine_vorticity = fine_grid_info['vorticity']
+            x0, y0 = fine_grid_info['center']
+            radius = fine_grid_info['radius']
+            i_start = int((x0 - radius + 1) * self.grid_size / 2)
+            i_end = i_start + self.fine_grid_size
+            j_start = int((y0 - radius + 1) * self.grid_size / 2)
+            j_end = j_start + self.fine_grid_size
+            if i_start >= 0 and i_end < self.grid_size and j_start >= 0 and j_end < self.grid_size:
+                coarse_patch = fine_vorticity[::self.refinement_factor, ::self.refinement_factor]
+                self.vorticity[j_start:j_end, i_start:i_end] = coarse_patch[:j_end-j_start, :i_end-i_start]
+                if self.enable_nonhydrostatic and grid_spacing_km < 1.0:
+                    coarse_w = fine_grid_info['vertical_velocity'][::self.refinement_factor, ::self.refinement_factor]
+                    coarse_p = fine_grid_info['pressure_perturbation'][::self.refinement_factor, ::self.refinement_factor]
+                    self.vertical_velocity[j_start:j_end, i_start:i_end] = coarse_w[:j_end-j_start, :i_end-i_start]
+                    self.pressure_perturbation[j_start:j_end, i_start:i_end] = coarse_p[:j_end-j_start, :i_end-i_start]
+        
+        self.update_visualization()
+
+    def update_visualization(self):
+        self.image.fill(Qt.white)
+        painter = QPainter(self.image)
+        if self.vorticity is not None:
+            norm_vorticity = (self.vorticity - np.min(self.vorticity)) / (np.max(self.vorticity) - np.min(self.vorticity) + 1e-10)
+            grad_x = (np.roll(self.vorticity, -1, axis=1) - np.roll(self.vorticity, 1, axis=1)) / (2 * 2/self.grid_size)
+            grad_y = (np.roll(self.vorticity, -1, axis=0) - np.roll(self.vorticity, 1, axis=0)) / (2 * 2/self.grid_size)
+            grad_magnitude = np.sqrt(grad_x**2 + grad_y**2)
+            norm_grad = (grad_magnitude - np.min(grad_magnitude)) / (np.max(grad_magnitude) - np.min(grad_magnitude) + 1e-10)
+            for i in range(self.grid_size):
+                for j in range(self.grid_size):
+                    value = norm_vorticity[i, j]
+                    grad = norm_grad[i, j]
+                    r = int(255 * grad if grad > 0.7 else 0 * value)
+                    g = int(255 * (1 - value) * (1 - grad))
+                    b = int(255 * value * (1 - grad))
+                    if self.enable_nonhydrostatic and self.grid_spacing_km < 1.0:
+                        w = self.vertical_velocity[i, j]
+                        if w > 0:
+                            b = int(b * (1 + 0.5 * w))  # Brighten for upward motion
+                        else:
+                            r = int(r * (1 - 0.5 * w))  # Redden for downward motion
+                    color = QColor(max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
+                    painter.setPen(QPen(color))
+                    painter.setBrush(QBrush(color))
+                    x = int(400 * i / self.grid_size)
+                    y = int(400 * j / self.grid_size)
+                    painter.drawRect(x, y, 4, 4)
+            
+            # Visualize fine grids
+            for fine_grid_info in self.fine_grids:
+                fine_vorticity = fine_grid_info['vorticity']
+                x0, y0 = fine_grid_info['center']
+                radius = fine_grid_info['radius']
+                norm_fine = (fine_vorticity - np.min(fine_vorticity)) / (np.max(fine_vorticity) - np.min(fine_vorticity) + 1e-10)
+                grad_fine_x = (np.roll(fine_vorticity, -1, axis=1) - np.roll(fine_vorticity, 1, axis=1)) / (2 * 2/(self.fine_grid_size * self.refinement_factor))
+                grad_fine_y = (np.roll(fine_vorticity, -1, axis=0) - np.roll(fine_vorticity, 1, axis=0)) / (2 * 2/(self.fine_grid_size * self.refinement_factor))
+                grad_fine = np.sqrt(grad_fine_x**2 + grad_fine_y**2)
+                norm_grad_fine = (grad_fine - np.min(grad_fine)) / (np.max(grad_fine) - np.min(grad_fine) + 1e-10)
+                for i in range(self.fine_grid_size * self.refinement_factor):
+                    for j in range(self.fine_grid_size * self.refinement_factor):
+                        value = norm_fine[i, j]
+                        grad = norm_grad_fine[i, j]
+                        r = int(255 * grad if grad > 0.7 else 0 * value)
+                        g = int(255 * (1 - value) * (1 - grad))
+                        b = int(255 * value * (1 - grad))
+                        if self.enable_nonhydrostatic and self.grid_spacing_km < 1.0:
+                            w = fine_grid_info['vertical_velocity'][i, j]
+                            if w > 0:
+                                b = int(b * (1 + 0.5 * w))
+                            else:
+                                r = int(r * (1 - 0.5 * w))
+                        color = QColor(max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
+                        painter.setPen(QPen(color))
+                        painter.setBrush(QBrush(color))
+                        x_fine = int(400 * (x0 - radius + (i / (self.fine_grid_size * self.refinement_factor) * 2 * radius) + 1) / 2)
+                        y_fine = int(400 * (y0 - radius + (j / (self.fine_grid_size * self.refinement_factor) * 2 * radius) + 1) / 2)
+                        painter.drawRect(x_fine, y_fine, 2, 2)
+                
+                # Draw fine grid boundary
+                painter.setPen(QPen(Qt.red, 2))
+                painter.setBrush(Qt.NoBrush)
+                x_start = int(400 * (x0 - radius + 1) / 2)
+                y_start = int(400 * (y0 - radius + 1) / 2)
+                width = int(400 * 2 * radius / 2)
+                painter.drawRect(x_start, y_start, width, width)
+            
+            # Draw streamlines
+            painter.setPen(QPen(Qt.black, 1))
+            for _ in range(10):
+                x0 = np.random.uniform(-1, 1)
+                y0 = np.random.uniform(-1, 1)
+                points = []
+                for _ in range(20):
+                    i = int((x0 + 1) * self.grid_size / 2)
+                    j = int((y0 + 1) * self.grid_size / 2)
+                    if 0 <= i < self.grid_size and 0 <= j < self.grid_size:
+                        u, v = self.compute_induced_velocity(x0, y0, self.eddy_centers, self.eddy_strengths, 0.0, 0.0)
+                        points.append((int(400 * (x0 + 1) / 2), int(400 * (y0 + 1) / 2)))
+                        x0 += u * 0.01
+                        y0 += v * 0.01
+                    else:
+                        break
+                if len(points) > 1:
+                    for k in range(len(points) - 1):
+                        painter.drawLine(points[k][0], points[k][1], points[k + 1][0], points[k + 1][1])
+        painter.end()
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.drawImage(0, 0, self.image)
+
+class OceanicEddyAndFrontWindow(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        try:
+            self.setWindowTitle("Oceanic Eddies and Fronts Simulation")
+            self.setGeometry(200, 200, 600, 850)
+            self.setFont(QFont("Consolas", 10))
+            
+            # Apply mobile-like stylesheet
+            self.setStyleSheet("""
+                QDialog, QWidget { 
+                    background-color: #ECEFF1; 
+                    color: #000000; 
+                    border: 1px solid #B0BEC5;
+                    border-radius: 10px;
+                }
+                QLineEdit { 
+                    background-color: #FFFFFF; 
+                    color: #000000; 
+                    border: 2px solid #B0BEC5; 
+                    border-radius: 5px;
+                    padding: 5px;
+                    font-family: Consolas;
+                    font-size: 10pt;
+                }
+                QPushButton { 
+                    background-color: #008080; 
+                    color: #FFFFFF; 
+                    border: 2px solid #006666; 
+                    border-radius: 8px;
+                    padding: 8px; 
+                    font-family: Consolas;
+                    font-size: 10pt;
+                    font-weight: bold;
+                }
+                QPushButton:hover { 
+                    background-color: #006666; 
+                }
+                QPushButton:pressed { 
+                    background-color: #004C4C; 
+                    border: 2px inset #006666; 
+                }
+                QPushButton:disabled { 
+                    background-color: #B0BEC5; 
+                    color: #78909C; 
+                }
+                QLabel { 
+                    color: #000000; 
+                    padding: 5px; 
+                    font-family: Consolas;
+                    font-size: 10pt;
+                }
+                QGroupBox { 
+                    background-color: #FFFFFF; 
+                    border: 1px solid #B0BEC5; 
+                    border-radius: 8px;
+                    margin-top: 12px; 
+                    padding: 10px; 
+                    font-family: Consolas;
+                    font-size: 10pt;
+                }
+                QGroupBox::title { 
+                    subcontrol-origin: margin; 
+                    subcontrol-position: top center; 
+                    padding: 5px; 
+                    background-color: #ECEFF1; 
+                    color: #000000; 
+                    font-family: Consolas;
+                    font-size: 10pt;
+                    font-weight: bold;
+                }
+                QCheckBox { 
+                    color: #000000; 
+                    padding: 5px; 
+                    font-family: Consolas;
+                    font-size: 10pt;
+                }
+            """)
+            
+            self.setup_ui()
+            self.timer = QTimer()
+            self.timer.timeout.connect(self.update_simulation)
+            self.start_button.setEnabled(False)
+            self.pause_button.setEnabled(False)
+            self.export_button.setEnabled(False)
+            logging.debug("OceanicEddyAndFrontWindow initialized")
+        except Exception as e:
+            logging.error(f"OceanicEddyAndFrontWindow initialization failed: {str(e)}")
+            raise
+
+    def setup_ui(self):
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
+        self.setLayout(main_layout)
+        
+        # Simulation widget
+        self.simulation_widget = EddySimulationWidget()
+        self.simulation_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        main_layout.addWidget(self.simulation_widget, stretch=3)
+        
+        # Control panel
+        control_group = QGroupBox("Eddy Simulation Parameters")
+        control_group.setStyleSheet("QGroupBox { background-color: #FFFFFF; box-shadow: 0px 2px 5px rgba(0,0,0,0.2); }")
+        form_layout = QFormLayout()
+        form_layout.setHorizontalSpacing(10)
+        form_layout.setVerticalSpacing(8)
+        
+        self.inputs = {}
+        params = [
+            ("Grid Size", "100", "Coarse grid resolution (10–200)"),
+            ("Grid Spacing (km)", "1.0", "Physical grid spacing (0.1–10.0 km)"),
+            ("Eddy Strength", "1.0", "Vortex intensity (0.5–2.0)"),
+            ("Eddy Radius", "0.2", "Vortex size (0.1–0.3)"),
+            ("Number of Eddies", "3", "Number of vortices (1–10)"),
+            ("Vorticity Diffusion", "0.01", "Diffusion rate (0.005–0.02)"),
+            ("Rotation Rate (rad/s)", "0.1", "Spin speed (0.05–0.2)"),
+            ("Background Flow (m/s)", "0.05", "Flow speed (0.02–0.1)"),
+            ("Decay Rate (1/s)", "0.01", "Dissipation rate (0.005–0.02)"),
+            ("Refinement Threshold", "0.5", "Vorticity threshold for refinement (0.1–1.0)"),
+            ("Refinement Factor", "4", "Fine grid resolution factor (2–8)"),
+            ("Strain Rate (1/s)", "0.02", "Strain for frontogenesis (0.01–0.05)"),
+            ("Coriolis Parameter (1/s)", "1e-4", "Coriolis parameter (1e-5–1e-3)"),
+            ("Rossby Number", "0.1", "Rossby number for ageostrophic effects (0.05–0.5)")
+        ]
+        
+        for label, default, tooltip in params:
+            edit = QLineEdit(default)
+            edit.setFont(QFont("Consolas", 10))
+            edit.setMinimumWidth(100)
+            edit.setToolTip(tooltip)
+            form_layout.addRow(QLabel(label), edit)
+            self.inputs[label] = edit
+        
+        self.enable_nonhydrostatic = QCheckBox("Enable Non-Hydrostatic Dynamics")
+        self.enable_nonhydrostatic.setFont(QFont("Consolas", 10))
+        self.enable_nonhydrostatic.setToolTip("Enable non-hydrostatic effects for scales < 1 km")
+        form_layout.addRow(self.enable_nonhydrostatic)
+        
+        control_group.setLayout(form_layout)
+        main_layout.addWidget(control_group, stretch=1)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(8)
+        
+        self.start_button = QPushButton("Start")
+        self.start_button.setFont(QFont("Consolas", 10, QFont.Bold))
+        self.start_button.setMinimumHeight(40)
+        self.start_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.start_button.clicked.connect(self.start_simulation)
+        button_layout.addWidget(self.start_button)
+        
+        self.pause_button = QPushButton("Pause")
+        self.pause_button.setFont(QFont("Consolas", 10, QFont.Bold))
+        self.pause_button.setMinimumHeight(40)
+        self.pause_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.pause_button.clicked.connect(self.pause_simulation)
+        button_layout.addWidget(self.pause_button)
+        
+        self.reset_button = QPushButton("Reset")
+        self.reset_button.setFont(QFont("Consolas", 10, QFont.Bold))
+        self.reset_button.setMinimumHeight(40)
+        self.reset_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.reset_button.clicked.connect(self.reset_simulation)
+        button_layout.addWidget(self.reset_button)
+        
+        self.initialize_button = QPushButton("Initialize")
+        self.initialize_button.setFont(QFont("Consolas", 10, QFont.Bold))
+        self.initialize_button.setMinimumHeight(40)
+        self.initialize_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.initialize_button.clicked.connect(self.initialize_simulation)
+        button_layout.addWidget(self.initialize_button)
+        
+        self.export_button = QPushButton("Export")
+        self.export_button.setFont(QFont("Consolas", 10, QFont.Bold))
+        self.export_button.setMinimumHeight(40)
+        self.export_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.export_button.clicked.connect(self.export_simulation)
+        button_layout.addWidget(self.export_button)
+        
+        self.close_button = QPushButton("Close")
+        self.close_button.setFont(QFont("Consolas", 10, QFont.Bold))
+        self.close_button.setMinimumHeight(40)
+        self.close_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.close_button.clicked.connect(self.close)
+        button_layout.addWidget(self.close_button)
+        
+        main_layout.addLayout(button_layout)
+
+    def initialize_simulation(self):
+        try:
+            grid_size = int(self.inputs["Grid Size"].text())
+            grid_spacing_km = float(self.inputs["Grid Spacing (km)"].text())
+            eddy_strength = float(self.inputs["Eddy Strength"].text())
+            eddy_radius = float(self.inputs["Eddy Radius"].text())
+            num_eddies = int(self.inputs["Number of Eddies"].text())
+            refinement_threshold = float(self.inputs["Refinement Threshold"].text())
+            refinement_factor = int(self.inputs["Refinement Factor"].text())
+            coriolis_param = float(self.inputs["Coriolis Parameter (1/s)"].text())
+            rossby_number = float(self.inputs["Rossby Number"].text())
+            enable_nonhydrostatic = self.enable_nonhydrostatic.isChecked()
+            
+            if grid_size < 10:
+                raise ValueError("Grid Size must be at least 10")
+            if grid_spacing_km <= 0 or grid_spacing_km > 10:
+                raise ValueError("Grid Spacing must be between 0.1 and 10.0 km")
+            if eddy_strength <= 0:
+                raise ValueError("Eddy Strength must be positive")
+            if eddy_radius <= 0 or eddy_radius > 1:
+                raise ValueError("Eddy Radius must be between 0 and 1")
+            if num_eddies < 1 or num_eddies > 10:
+                raise ValueError("Number of Eddies must be between 1 and 10")
+            if refinement_threshold <= 0:
+                raise ValueError("Refinement Threshold must be positive")
+            if refinement_factor < 2 or refinement_factor > 8:
+                raise ValueError("Refinement Factor must be between 2 and 8")
+            if coriolis_param < 1e-5 or coriolis_param > 1e-3:
+                raise ValueError("Coriolis Parameter must be between 1e-5 and 1e-3")
+            if rossby_number < 0.05 or rossby_number > 0.5:
+                raise ValueError("Rossby Number must be between 0.05 and 0.5")
+                
+            self.simulation_widget.initialize_field(grid_size, eddy_strength, eddy_radius, num_eddies, refinement_threshold, refinement_factor, coriolis_param, rossby_number, enable_nonhydrostatic, grid_spacing_km)
+            self.start_button.setEnabled(True)
+            self.pause_button.setEnabled(False)
+            self.reset_button.setEnabled(True)
+            self.export_button.setEnabled(True)
+            logging.debug("Eddy simulation initialized with ageostrophic and non-hydrostatic dynamics")
+            
+        except ValueError as e:
+            logging.error(f"Initialization failed: {str(e)}")
+            QMessageBox.warning(self, "Input Error", str(e))
+
+    def start_simulation(self):
+        try:
+            if self.simulation_widget.vorticity is None:
+                self.initialize_simulation()
+            self.timer.start(100)
+            self.start_button.setEnabled(False)
+            self.pause_button.setEnabled(True)
+            self.reset_button.setEnabled(True)
+            self.export_button.setEnabled(True)
+            logging.debug("Eddy simulation started")
+        except Exception as e:
+            logging.error(f"Start simulation failed: {str(e)}")
+            QMessageBox.warning(self, "Start Error", str(e))
+
+    def pause_simulation(self):
+        try:
+            self.timer.stop()
+            self.start_button.setEnabled(True)
+            self.pause_button.setEnabled(False)
+            self.reset_button.setEnabled(True)
+            self.export_button.setEnabled(True)
+            logging.debug("Eddy simulation paused")
+        except Exception as e:
+            logging.error(f"Pause simulation failed: {str(e)}")
+            QMessageBox.warning(self, "Pause Error", str(e))
+
+    def reset_simulation(self):
+        try:
+            self.timer.stop()
+            self.simulation_widget.vorticity = None
+            self.simulation_widget.vertical_velocity = None
+            self.simulation_widget.pressure_perturbation = None
+            self.simulation_widget.time = 0.0
+            self.simulation_widget.eddy_centers = []
+            self.simulation_widget.eddy_strengths = []
+            self.simulation_widget.eddy_radii = []
+            self.simulation_widget.fine_grids = []
+            self.simulation_widget.image.fill(Qt.white)
+            self.simulation_widget.update()
+            self.start_button.setEnabled(False)
+            self.pause_button.setEnabled(False)
+            self.reset_button.setEnabled(True)
+            self.export_button.setEnabled(False)
+            self.initialize_simulation()
+            logging.debug("Eddy simulation reset")
+        except Exception as e:
+            logging.error(f"Reset failed: {str(e)}")
+            QMessageBox.warning(self, "Reset Error", str(e))
+
+    def export_simulation(self):
+        try:
+            if self.simulation_widget.vorticity is None:
+                raise ValueError("No simulation data to export. Please initialize the simulation first.")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+            filename = f"oceanic_eddies_output_{timestamp}.txt"
+            data = self.simulation_widget.get_simulation_data()
+            data.insert(0, f"Oceanic Eddies and Fronts Simulation Output")
+            data.insert(1, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            data.insert(2, "-" * 50)
+            with open(filename, 'w') as f:
+                for line in data:
+                    f.write(line + '\n')
+            logging.debug(f"Simulation data exported to {filename}")
+            QMessageBox.information(self, "Export Successful", f"Simulation data saved to {filename}")
+        except Exception as e:
+            logging.error(f"Export failed: {str(e)}")
+            QMessageBox.warning(self, "Export Error", str(e))
+
+    def update_simulation(self):
+        try:
+            vorticity_diffusion = float(self.inputs["Vorticity Diffusion"].text())
+            rotation_rate = float(self.inputs["Rotation Rate (rad/s)"].text())
+            background_flow = float(self.inputs["Background Flow (m/s)"].text())
+            decay_rate = float(self.inputs["Decay Rate (1/s)"].text())
+            refinement_threshold = float(self.inputs["Refinement Threshold"].text())
+            strain_rate = float(self.inputs["Strain Rate (1/s)"].text())
+            coriolis_param = float(self.inputs["Coriolis Parameter (1/s)"].text())
+            rossby_number = float(self.inputs["Rossby Number"].text())
+            enable_nonhydrostatic = self.enable_nonhydrostatic.isChecked()
+            grid_spacing_km = float(self.inputs["Grid Spacing (km)"].text())
+            self.simulation_widget.update_simulation(vorticity_diffusion, rotation_rate, background_flow, decay_rate, refinement_threshold, strain_rate, coriolis_param, rossby_number, enable_nonhydrostatic, grid_spacing_km)
+        except ValueError as e:
+            logging.error(f"Simulation update failed: {str(e)}")
+            QMessageBox.warning(self, "Simulation Error", str(e))
+            self.pause_simulation()
+
+    def closeEvent(self, event):
+        self.timer.stop()
+        logging.debug("OceanicEddyAndFrontWindow closed")
+        event.accept()
