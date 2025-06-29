@@ -477,7 +477,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   11. Applies AMR to refine $T_o$, $T_a$, and $S$ where the refinement mask is active.
   12. Returns the current time, updated $T_o$, $T_a$, and refinement mask.
 
-### Advection and Diffusion
+### _Advection and Diffusion_
 - **Advection (`compute_advection`)**:
   - Computes advection for a field ($T$) using velocities $u, v$:
     - $∂T/∂t = -u·(∂T/∂x) - v·(∂T/∂y)$
@@ -485,7 +485,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
       ```
       ∂T/∂t = -u * ∂T/∂x - v * ∂T/∂y
       ```
-    - $∂T/∂x ≈ {T_{i+1,j} - T_{i-1,j})/(2·dx_{i,j})$
+    - $∂T/∂x ≈ (T_{i+1,j} - T_{i-1,j})/(2·dx_{i,j})$
    
       ```
       ∂T/∂x ≈ (T_(i+1,j) - T_(i-1,j)) / (2 * dx_i,j)
@@ -577,7 +577,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   $(CO_{{2}^{atm}})^{n+1} = (CO_{2}^{atm})^{n} + dt·((F_{CO_{2}})^{atm} + (adv_{CO_{2}})_{a})$
   where:
   - $(F_{CO_{2}})^{ocean}$, $(F_{CO_{2}})^{atm}$ are CO₂ fluxes from `TwoWayCoupling.compute_co2_flux`.
-  - $(adv_{CO_{2}})__{o})$, $(adv_{CO_{2}}_{a})$ are advection terms.
+  - $(adv_{CO_{2}})ₒ)$, $(adv_{CO_{2}}_{a})$ are advection terms.
 - **Implementation**: Clips terms to $[-1e-2, 1e-2]$, $CO_{2}^{ocean}$ to $[0, 10]$, and $CO_{{2}^{atm}}$ to $[200, 1000] ppm$.
 
 ### _Ocean Velocity Update_
@@ -602,7 +602,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   ```
   ∂T/∂t = -u * ∂T/∂x - v * ∂T/∂y
   ```
-  $∂T/∂x ≈ (T_{i+1,j} - T_{i-1,j})/(2·dx_{i,})$
+  $∂T/∂x ≈ (T_{i+1,j} - T_{i-1,j})/(2·dx_{i,j})$
   ```
   ∂T/∂x ≈ (T_(i+1,j) - T_(i-1,j)) / (2 * dx_i,j)
   ```
@@ -623,73 +623,3 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   where $D = 1e-6 m^2/s$
 - **Implementation**: Uses central differences and clips output to $[-1e5, 1e5]$.
 
-## Algorithms
-
-### 1. Initialization Algorithm
-- **Input**: Parameters (ocean_temp, atm_temp, coupling_coeff, heat_capacity_ocean, heat_capacity_atm, time_step, total_time, grid_size, coast_factor, use_nested_grid, nested_grid_size, amr_threshold, solar_forcing, longwave_coeff, adv_velocity, drag_coeff, wind_speed, precip_rate, evap_rate, mixing_coeff, co2_transfer_coeff, freshwater_conservation_coeff, co2_conservation_coeff, ocean_time_scale, atm_time_scale).
-- **Steps**:
-  1. Log initialization parameters.
-  2. Store input parameters as instance variables.
-  3. Compute ocean_dt = dt * ocean_time_scale and atm_dt = dt * atm_time_scale.
-  4. Initialize `TwoWayCoupling` with flux parameters.
-  5. Create `VariableResolutionGrid` and get dx, dy.
-  6. If use_nested_grid, initialize `NestedGrid`.
-  7. Initialize `AdaptiveMeshRefinement` with amr_threshold.
-  8. Set up 2D arrays:
-     - ocean_temps = ocean_temp, clipped to [250, 350] K.
-     - atm_temps = atm_temp, clipped to [250, 350] K.
-     - salinity = 35.0 psu.
-     - u_ocean, v_ocean = 0.
-     - moisture = 0.01.
-     - co2_ocean = 2.0, co2_atm = 400.0 ppm.
-  9. Log completion.
-
-### 2. Time Stepping Algorithm (step)
-- **Input**: Step number (step).
-- **Steps**:
-  1. Copy current fields to avoid in-place modification.
-  2. Compute refinement_mask using `AdaptiveMeshRefinement.compute_refinement`.
-  3. If nested_grid exists, update T_o, T_a using `NestedGrid.update`.
-  4. Compute atmosphere velocities:
-     - u_atm = adv_velocity * cos(2 * π * step * dt / total_time).
-     - v_atm = adv_velocity * sin(2 * π * step * dt / total_time).
-  5. Compute fluxes and mixing using `TwoWayCoupling` methods.
-  6. Update velocities: u_new, v_new using momentum flux.
-  7. Compute advection for T_o, T_a, S, CO₂_ocean, CO₂_atm.
-  8. Compute diffusion for T_o, T_a, S.
-  9. Update fields with semi-implicit scheme (α = 0.5).
-  10. Clip updated fields to physical ranges.
-  11. Apply AMR refinement where refinement_mask is True.
-  12. Log step completion and return time, ocean_temps, atm_temps, refinement_mask.
-  13. Handle exceptions and log errors if they occur.
-
-### 3. Advection Algorithm (compute_advection)
-- **Input**: Field T, dx, dy, step, optional velocities u, v.
-- **Steps**:
-  1. Initialize advection array (zeros, same shape as T).
-  2. If u, v not provided, use:
-     - u_vel = adv_velocity * cos(2 * π * step * dt / total_time).
-     - v_vel = adv_velocity * sin(2 * π * step * dt / total_time).
-  3. For each grid point (i, j):
-     - Compute u_ij, v_ij (from u_vel, v_vel, handling scalar or array inputs).
-     - adv_x = -u_ij * (T_(i+1,j) - T_(i-1,j)) / (2 * dx_i,j).
-     - adv_y = -v_ij * (T_(i,j+1) - T_(i,j-1)) / (2 * dy_i,j).
-     - advection[i,j] = adv_x + adv_y, clipped to [-1e5, 1e5].
-  4. Return advection array.
-  5. Log errors if computation fails.
-
-### 4. Diffusion Algorithm (compute_diffusion)
-- **Input**: Field T, dx, dy.
-- **Steps**:
-  1. Initialize diffusion array (zeros, same shape as T).
-  2. Set D = 1e-6 m²/s.
-  3. For each grid point (i, j):
-     - diff_x = (T_(i+1,j) - 2*T_i,j + T_(i-1,j)) / dx_i,j².
-     - diff_y = (T_(i,j+1) - 2*T_i,j + T_(i,j-1)) / dy_i,j².
-     - diffusion[i,j] = D * (diff_x + diff_y), clipped to [-1e5, 1e5].
-  4. Return diffusion array.
-  5. Log errors if computation fails.
-
-## Conclusion
-
-The `Model.py` file, through the `OceanAtmosphereModel` class, is the backbone of the Ocean-Atmosphere Coupling simulator. It integrates physical processes (fluxes, advection, diffusion, mixing) with numerical methods (finite differences, semi-implicit time stepping) and advanced grid techniques (variable resolution, nested grids, AMR). The class ensures robust simulation of coupled dynamics by managing different time scales for ocean and atmosphere, applying stability constraints, and interfacing with other modules for flux calculations and grid refinement. Its modular design and error handling make it a flexible and reliable component for studying ocean-atmosphere interactions.
