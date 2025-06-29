@@ -494,7 +494,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
    
       ```
       ∂T/∂y ≈ (T_(i,j+1) - T_(i,j-1)) / (2 * dy_i,j)
-      ``
+      ```
   - Uses central differences and clips output to $[-1e5, 1e5]$.
 - **Diffusion (`compute_diffusion`)**:
   - Computes diffusion for a field ($T$):
@@ -577,7 +577,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   $(CO_{{2}^{atm}})^{n+1} = (CO_{2}^{atm})^{n} + dt·((F_{CO_{2}})^{atm} + (adv_{CO_{2}})_{a})$
   where:
   - $(F_{CO_{2}})^{ocean}$, $(F_{CO_{2}})^{atm}$ are CO₂ fluxes from `TwoWayCoupling.compute_co2_flux`.
-  - $(adv_{CO_{2}})ₒ)$, $(adv_{CO_{2}}_{a})$ are advection terms.
+  - $(adv_{CO_{2}})ₒ)$, $(adv_{CO_{2}})_{a})$ are advection terms.
 - **Implementation**: Clips terms to $[-1e-2, 1e-2]$, $CO_{2}^{ocean}$ to $[0, 10]$, and $CO_{{2}^{atm}}$ to $[200, 1000] ppm$.
 
 ### _Ocean Velocity Update_
