@@ -444,14 +444,35 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   8. Computes diffusion for $T_o$, T_a$, $S$ using `compute_diffusion`.
   9. Updates fields using a semi-implicit scheme ($α = 0.5$):
      - $(T_{o_{new}} = T_o + dt_{ocean}·(α·(Q/C_o + R_{ocean}/C_o - adv_{ocean} + diff_{ocean} + mix_{ocean}/C_o)+(1 - α)·(Q/C_o+R_{ocean}/C_o))$
+       
        ```
        T_o_new = T_o + ocean_dt * (α * (Q / C_o + R_ocean / C_o - adv_ocean + diff_ocean + mix_ocean / C_o) + (1 - α) * (Q / C_o + R_ocean / C_o))
        ```
-     - T_a_new = T_a + atm_dt * (α * (-Q / C_a + R_atm / C_a - adv_atm + diff_atm + mix_atm / C_a) + (1 - α) * (-Q / C_a + R_atm / C_a))
-     - S_new = S + dt * (dS/dt + diff_salinity + mix_ocean)
-     - q_new = q + dt * (M_adv - F_freshwater)
-     - C_o_new = CO₂_ocean + dt * (F_co2_ocean + adv_co2_o)
+     - $T_{a_{new}} = T_a + dt_{atm}·(α·(-Q/C_a+R_{atm}/C_a-adv_{atm} + diff_{atm} + mix_{atm}/C_a) + (1 - α)·(-Q/C_a + R_{atm}/C_a))$
+ 
+       ```
+       T_a_new = T_a + atm_dt * (α * (-Q / C_a + R_atm / C_a - adv_atm + diff_atm + mix_atm / C_a) + (1 - α) * (-Q / C_a + R_atm / C_a))
+       ```
+     - $S_{new} = S + dt·(dS/dt + diff_{salinity} + mix_{ocean})$
+    
+       ```
+       S_new = S + dt * (dS/dt + diff_salinity + mix_ocean)
+       ```
+     - $q_{new} = q + dt·(M_{adv} - F_{freshwater})$
+    
+       ```
+       q_new = q + dt * (M_adv - F_freshwater)
+       ```
+     - $C_{o_{new}} = CO_{2}^{ocean} + dt·(F_{CO_{2}}^{ocean} + adv_{(CO_{2})_{o}})$
+    
+       ```
+       C_o_new = CO₂_ocean + dt * (F_co2_ocean + adv_co2_o)
+       ```
      - C_a_new = CO₂_atm + dt * (F_co2_atm + adv_co2_a)
+    
+       ```
+       C_a_new = CO₂_atm + dt * (F_co2_atm + adv_co2_a)
+       ```
   10. Clips updated fields to physical ranges (e.g., T_o, T_a to [250, 350] K, u_ocean, v_ocean to [-10, 10] m/s, q to [0, 0.05], CO₂_atm to [200, 1000] ppm).
   11. Applies AMR to refine T_o, T_a, and S where the refinement mask is active.
   12. Returns the current time, updated T_o, T_a, and refinement mask.
