@@ -378,7 +378,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
    - Initializes physical and numerical parameters, including time scales for ocean and atmosphere.
 
 - **Time Stepping**:
-   - Advances the simulation using different time steps for ocean ($dt·(ocean time scale)$) and atmosphere (dt * atm_time_scale).
+   - Advances the simulation using different time steps for ocean ($dt·(ocean$ $time$ $scale)$) and atmosphere (dt * atm_time_scale).
    - Updates fields by computing fluxes (heat, momentum, freshwater, CO₂), advection, diffusion, and turbulent mixing.
    - Applies numerical stability constraints (e.g., clipping temperatures to 250–350 K).
 
