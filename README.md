@@ -11,22 +11,18 @@ The ocean-atmosphere coupling aoftware is a numerical simulation software design
 1. **Core Simulation**:
    - Simulates coupled ocean-atmosphere dynamics on a 2D grid with variable time steps for ocean and atmosphere.
    - Computes temperature, salinity, velocity, moisture, and CO₂ concentrations, accounting for advection, diffusion, and fluxes.
-
 2. **Physical Processes**:
    - Models momentum, heat, freshwater, and CO₂ fluxes between ocean and atmosphere.
    - Simulates turbulent mixing, boundary layer schemes (Bulk and KPP), cloud microphysics, air-sea interactions, and surface layer physics.
    - Supports potential vorticity (PV) frontogenesis for oceanic eddies and fronts.
-
 3. **Numerical Methods**:
    - Implements Euler and Runge-Kutta 4 (RK4) time-stepping methods for boundary layer schemes.
    - Uses finite difference methods for advection and diffusion.
    - Employs adaptive mesh refinement and variable resolution grids for computational efficiency.
-
 4. **Visualization and Analysis**:
    - Visualizes ocean and atmosphere temperature fields, mean temperatures over time, and refinement regions.
    - Provides specialized analyses for turbulent mixing, surface layer physics, boundary layer schemes, air-sea interactions, and cloud microphysics.
    - Tracks thermal fronts, Ekman spirals, heat fluxes, wind stresses, and cloud properties.
-
 5. **Parameter Control**:
    - Allows configuration of physical parameters (e.g., drag coefficient, wind speed, mixing coefficient) and numerical parameters (e.g., grid size, time step).
    - Supports conservation constraints for freshwater and CO₂ fluxes.
@@ -569,7 +565,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 - **Implementation**: Clips terms to $[-1e-4, 1e-4]$ and $q$ to $[0, 0.05]$.
 
 ### _CO₂ Concentration Updates_
-- Updates ocean and atmosphere CO₂ concentrations ($(CO_{2})^{ocean}), ($CO_{2})^{atm}$) based on CO₂ flux and advection.
+- Updates ocean and atmosphere CO₂ concentrations ($(CO_{2})^{ocean}$), ($CO_{2})^{atm}$) based on CO₂ flux and advection.
 - $(CO_{2}^{ocean})^{n+1} = (CO_{2}^{ocean})^{n} + dt·((F_{CO_{2}})^{ocean} + (adv_{CO_{2}})_{o})$
   ```
   CO₂_ocean^(n+1) = CO₂_ocean^n + dt * (F_co2_ocean + adv_co2_o)
@@ -606,7 +602,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   ```
   ∂T/∂x ≈ (T_(i+1,j) - T_(i-1,j)) / (2 * dx_i,j)
   ```
-  $∂T/∂y ≈ (T_{i,j+1} - T_{i,j-1})/(2·dy_{i,j})
+  $∂T/∂y ≈ (T_{i,j+1} - T_{i,j-1})/(2·dy_{i,j})$
   ```
   ∂T/∂y ≈ (T_(i,j+1) - T_(i,j-1)) / (2 * dy_i,j)
   ```
