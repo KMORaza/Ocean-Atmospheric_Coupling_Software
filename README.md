@@ -561,7 +561,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   ```
   where:
   - $M_{adv}$ is moisture advection from `TwoWayCoupling.compute_moisture_advection`.
-  - $F_{freshwater} is freshwater flux.
+  - $F_{freshwater}$ is freshwater flux.
 - **Implementation**: Clips terms to $[-1e-4, 1e-4]$ and $q$ to $[0, 0.05]$.
 
 ### _CO₂ Concentration Updates_
@@ -618,4 +618,35 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   ```
   where $D = 1e-6 m^2/s$
 - **Implementation**: Uses central differences and clips output to $[-1e5, 1e5]$.
+
+---
+
+![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(1).png)
+![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(2).png)
+![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(3).png)
+![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(4).png)
+![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(5).png)
+![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(6).png)
+![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(7).png)
+![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(8).png)
+![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(9).png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
