@@ -89,30 +89,30 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 - **Purpose**: Adjusts drag coefficient based on wind and ocean currents.
 - **Equation**:
   
-  $u_* = sqrt(ρ_{air}C_{d}U^{2}$/ $ρ_{water})$
+  $u_* = sqrt(ρ_{air}·C_{d}·U^{2}/ρ_{water})$
   
   $z_{0} = α(u_{*}^{2} + 0.1(u_{ocean}^{2} + v_{ocean}^{2}))/g$
 
   $C_{d}' = C_{d}(1 + 0.1log10(z_{0}))$
 
-  where $u_*$ is friction velocity, $C_{d}$ is drag coefficient, $U$ is wind speed, $ρ_{air} = 1.225 kg/m^{3}$, $ρ_{water} = 1025 kg/m^{3}$, $α = 0.018$, $g = 9.81 m/s^{2}, and $z_{0}$ is roughness length.
+  where $u_*$ is friction velocity, $C_{d}$ is drag coefficient, $U$ is wind speed, $ρ_{air} = 1.225 kg/m^{3}$, $ρ_{water} = 1025 kg/m^{3}$, $α = 0.018$, $g = 9.81 m/s^{2}$, and $z_{0}$ is roughness length.
 
 - **Implementation**: `compute_sea_surface_roughness` clips $z_0$ to [1e-6, 1e-2] and $C_{d}'$ to [1e-4, 1e-2].
 
 #### Momentum Flux
 - **Purpose**: Computes wind stress on the ocean surface.
-- **Equation**: $τ = ρ_{air}*C_{d}'*U^2$ where $C_{d}'$ is the adjusted drag coefficient.
+- **Equation**: $τ = ρ_{air}·C_{d}'·U^2$ where $C_{d}'$ is the adjusted drag coefficient.
 - **Implementation**: `compute_momentum_flux` clips $τ$ to [-1e5, 1e5] $N/m^{2}$.
 
 #### Heat Flux
 - **Purpose**: Computes sensible and latent heat fluxes.
 - **Equations**:
 
-  $Q_{sensible} = ρ_{air}C_{p}k_{sensible}(T_{a} - T_{o})$
+  $Q_{sensible} = ρ_{air}·C_{p}·k_{sensible}(T_{a} - T_{o})$
 
-  $k_{sensible} = 0.01 * C_d' / C_d$
+  $k_{sensible} = 0.01 * C_d'/C_d$
 
-  $Q_{latent} = ρ_{air}L_{v}E*sign(T_{a} - T_{o})$
+  $Q_{latent} = ρ_{air}·L_{v}·E·sign(T_{a} - T_{o})$
 
   $Q_{total} = Q_{sensible} + Q_{latent}$
 
@@ -124,13 +124,13 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 - **Purpose**: Computes net freshwater flux and salinity change, ensuring mass conservation.
 - **Equations**:
   
-  $P = P_{0}*(1 + 0.5q/0.01)$
+  $P = P_{0}(1 + 0.5q/0.01)$
 
-  $E = E_{0}*C_{freshwater}(1+0.1S/35)$
+  $E = E_{0}·C_{freshwater}(1+0.1S/35)$
 
   $F = P - E$
 
-  $dS/dt = -S*F/(ρ_{water}*H)$
+  $dS/dt = -S·F/(ρ_{water}·H)$
 
   where $P_{0}$ is precipitation rate, $E_0$ is evaporation rate, $C_{freshwater} is the conservation coefficient, $S$ is salinity, $H$ = 1000 m is ocean depth, and $q$ is moisture.
 
@@ -151,18 +151,18 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
   $F_{CO₂}^{atm} = -F_{CO₂}/H_{atm}$
 
   where $α = 0.03$ is CO₂ solubility, $k_{CO₂}$ is transfer coefficient, $C_{CO₂}$ is conservation coefficient, $H = 1000 m$, and $H_{atm} = 10000 m$.
-- **Implementation**: `compute_co2_flux` clips outputs to [-1e-3, 1e-3].
+- **Implementation**: `compute_co2_flux` clips outputs to $[-1e-3, 1e-3]$.
 
 #### Moisture Advection
 - **Purpose**: Computes moisture transport in the atmosphere.
-- **Equation**: $Advection$ = $-u_a * ∂q/∂x - v_a * ∂q/∂y$ where $u_a$, $v_a$ are atmosphere velocities, and $∂q/∂x$, $∂q/∂y$ are computed via central differences.
-- **Implementation**: `compute_moisture_advection` uses finite differences and clips output to [-1e-4, 1e-4].
+- **Equation**: $Advection$ = $-u_{a}·∂q/∂x - v_{a}·∂q/∂y$ where $u_a$, $v_a$ are atmosphere velocities, and $∂q/∂x$, $∂q/∂y$ are computed via central differences.
+- **Implementation**: `compute_moisture_advection` uses finite differences and clips output to $[-1e-4, 1e-4]$.
 
 #### Turbulent Mixing
 - **Purpose**: Models mixing driven by temperature gradients and wind.
 - **Equation**:
 
-  $M = k_{m} * u_* (∂T/∂x + ∂T/∂y)$
+  $M = k_{m}.u_*.(∂T/∂x + ∂T/∂y)$
 
   $u_* = sqrt(ρ_{air} * C_{d} * U^{2} / ρ_{water})$
 
@@ -173,7 +173,7 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 #### Radiative Flux
 - **Purpose**: Models solar and longwave radiation with greenhouse effects.
 - **Equation**: $Q_{rad} = Q_{solar} - ε * σ * (T / 300)^4 * (1 + 0.1 * log(CO₂_{atm} / 400))$ where $σ = 5.67e-8 W/m^{2}/K^{4}$, $ε$ is longwave coefficient, and $Q_{solar}$ is solar forcing.
-- **Implementation**: `compute_radiative_flux` clips $T/300$ to $[0.8, 1.2]$, $log(CO₂_{atm}/400)$ to $[-1, 1]$, and output to [-1e6, 1e6] $W/m^2$.
+- **Implementation**: `compute_radiative_flux` clips $T/300$ to $[0.8, 1.2]$, $log(CO₂_{atm}/400)$ to $[-1, 1]$, and output to $[-1e6, 1e6]$ $W/m^2$.
 
 ### 2. Ocean-Atmosphere Model 
 The `OceanAtmosphereModel` integrates physical processes over time.
