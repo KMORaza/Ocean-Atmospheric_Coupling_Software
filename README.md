@@ -89,7 +89,7 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 - **Purpose**: Adjusts drag coefficient based on wind and ocean currents.
 - **Equation**:
   
-  $u_* = sqrt(ρ_{air}·C_{d}·U^{2}$ / $ρ_{water})$
+  $u_* = √(ρ_{air}·C_{d}·U^{2}/ρ_{water})$
   
   $z_{0} = α(u_{*}^{2} + 0.1(u_{ocean}^{2} + v_{ocean}^{2}))/g$
 
@@ -251,7 +251,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 
   $v = V_{0}·e^{z/d}·sin(π/4 + z/d)$
 
-  $V_{0} = τ / (ρ·sqrt(2νf))$
+  $V_{0} = τ / (ρ·√(2νf))$
 
   $d = sqrt(2ν/f)$
 
