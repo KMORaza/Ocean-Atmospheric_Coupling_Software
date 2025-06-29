@@ -335,7 +335,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 - **Diffusion**:
   $∂φ/∂t = k·∇^2·φ$
 
-  $∇^{2}·φ ≈ (φ_{i+1,j} - 2φ_{i,j} + φ_{i-1,j})/dx_{i,j^{2}} + (φ_{i,j+1} - 2φ_{i,j} + φ_{i,j-1})/dy_{i,j^{2}}$
+  $∇^{2}·φ ≈ (φ_{i+1,j} - 2φ_{i,j} + φ_{i-1,j})/dx_{i,j}^{2}} + (φ_{i,j+1} - 2φ_{i,j} + φ_{i,j-1})/dy_{i,j}^{2}}$
 
    - Applies diffusion to stabilize numerical solutions.
 
