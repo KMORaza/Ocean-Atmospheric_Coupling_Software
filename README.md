@@ -468,116 +468,160 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
        ```
        C_o_new = CO₂_ocean + dt * (F_co2_ocean + adv_co2_o)
        ```
-     - C_a_new = CO₂_atm + dt * (F_co2_atm + adv_co2_a)
+     - $C_{a_{new}} = CO_{2}^{atm} + dt·(F_{CO_{2}^{atm} + adv_{(CO_{2})_{a}})$
     
        ```
        C_a_new = CO₂_atm + dt * (F_co2_atm + adv_co2_a)
        ```
-  10. Clips updated fields to physical ranges (e.g., T_o, T_a to [250, 350] K, u_ocean, v_ocean to [-10, 10] m/s, q to [0, 0.05], CO₂_atm to [200, 1000] ppm).
-  11. Applies AMR to refine T_o, T_a, and S where the refinement mask is active.
-  12. Returns the current time, updated T_o, T_a, and refinement mask.
+  10. Clips updated fields to physical ranges (e.g., $T_o, T_a$ to $[250, 350]$ $K, u_ocean, v_ocean$ to $[-10, 10] m/s$, $q$ to $[0, 0.05]$, $CO_{2}^{atm}$ to $[200, 1000] ppm$).
+  11. Applies AMR to refine $T_o$, $T_a$, and $S$ where the refinement mask is active.
+  12. Returns the current time, updated $T_o$, $T_a$, and refinement mask.
 
 ### Advection and Diffusion
 - **Advection (`compute_advection`)**:
-  - Computes advection for a field (T) using velocities u, v:
-    - ∂T/∂t = -u * ∂T/∂x - v * ∂T/∂y
-    - ∂T/∂x ≈ (T_(i+1,j) - T_(i-1,j)) / (2 * dx_i,j)
-    - ∂T/∂y ≈ (T_(i,j+1) - T_(i,j-1)) / (2 * dy_i,j)
-  - Uses central differences and clips output to [-1e5, 1e5].
+  - Computes advection for a field ($T$) using velocities $u, v$:
+    - $∂T/∂t = -u·(∂T/∂x) - v·(∂T/∂y)$
+      
+      ```
+      ∂T/∂t = -u * ∂T/∂x - v * ∂T/∂y
+      ```
+    - $∂T/∂x ≈ {T_{i+1,j} - T_{i-1,j})/(2·dx_{i,j})
+   
+      ```
+      ∂T/∂x ≈ (T_(i+1,j) - T_(i-1,j)) / (2 * dx_i,j)
+      ```
+    - $∂T/∂y ≈ (T_{i,j+1} - T_{i,j-1})/(2·dy_{i,j})$
+   
+      ```
+      ∂T/∂y ≈ (T_(i,j+1) - T_(i,j-1)) / (2 * dy_i,j)
+      ``
+  - Uses central differences and clips output to $[-1e5, 1e5]$.
 - **Diffusion (`compute_diffusion`)**:
-  - Computes diffusion for a field (T):
-    - ∂T/∂t = D * ∇²T
-    - ∇²T ≈ (T_(i+1,j) - 2*T_i,j + T_(i-1,j)) / dx_i,j² + (T_(i,j+1) - 2*T_i,j + T_(i,j-1)) / dy_i,j²
-    - D = 1e-6 (diffusion coefficient)
-  - Clips output to [-1e5, 1e5].
+  - Computes diffusion for a field ($T$):
+    - $∂T/∂t = D·∇^{2}·T$
+    - $∇^{2}·T ≈ (T_{i+1,j} - 2·T_{i,j} + T_{i-1,j}) / dx_{i,j}^{2} + (T_{i,j+1} - 2·T_{i,j} + T_{i,j-1}) / dy_{i,j}^{2}$
+   
+    ```
+    ∇²T ≈ (T_(i+1,j) - 2*T_i,j + T_(i-1,j)) / dx_i,j² + (T_(i,j+1) - 2*T_i,j + T_(i,j-1)) / dy_i,j²
+    ```
+    - $D = 1e-6$ (diffusion coefficient)
+  - Clips output to $[-1e5, 1e5]$.
 
-## Physics and Mathematical Models
+### _Ocean Temperature Update_
+- Updates ocean temperature ($T_o$) based on heat flux, radiative flux, advection, diffusion, and turbulent mixing.
+- $(T_{o})^{n+1} = (T_o)^{n} + dt_{ocean}·(α·(Q/C_o + R_{ocean} / C_o - adv_{ocean} + diff_{ocean} + mix_{ocean} /C_o) + (1 - α)·(Q/C_o + R_{ocean} / C_o))$
 
-The `OceanAtmosphereModel` integrates physical processes through numerical updates, relying on `TwoWayCoupling` for flux calculations. Below are the key models and equations implemented in `Model.py`, presented in regular text form with symbols.
-
-### 1. Ocean Temperature Update
-- **Purpose**: Updates ocean temperature (T_o) based on heat flux, radiative flux, advection, diffusion, and turbulent mixing.
-- **Equation**:
+  ```
   T_o^(n+1) = T_o^n + ocean_dt * (α * (Q / C_o + R_ocean / C_o - adv_ocean + diff_ocean + mix_ocean / C_o) + (1 - α) * (Q / C_o + R_ocean / C_o))
+  ```
+  
   where:
-  - Q is heat flux from `TwoWayCoupling.compute_heat_flux` (W/m²).
-  - R_ocean is radiative flux from `TwoWayCoupling.compute_radiative_flux` (W/m²).
-  - adv_ocean is advection from `compute_advection` (K/s).
-  - diff_ocean is diffusion from `compute_diffusion` (K/s).
-  - mix_ocean is turbulent mixing from `TwoWayCoupling.compute_turbulent_mixing` (W/m²).
-  - C_o is ocean heat capacity (J/kg/K).
-  - α = 0.5 is the semi-implicit factor.
-  - ocean_dt = dt * ocean_time_scale (s).
-- **Implementation**: Clips terms to [-1e3, 1e3] and T_o to [250, 350] K.
+  - $Q$ is heat flux from `TwoWayCoupling.compute_heat_flux` (W/m²).
+  - $R_{ocean}$ is radiative flux from `TwoWayCoupling.compute_radiative_flux` (W/m²).
+  - $adv_{ocean}$ is advection from `compute_advection` (K/s).
+  - $diff_{ocean}$ is diffusion from `compute_diffusion` (K/s).
+  - $mix_{ocean}$ is turbulent mixing from `TwoWayCoupling.compute_turbulent_mixing` (W/m²).
+  - $C_o$ is ocean heat capacity (J/kg/K).
+  - $α = 0.5$ is the semi-implicit factor.
+  - $dt_{ocean} = dt$·($ocean$ $time$ $scale$).
+- **Implementation**: Clips terms to $[-1e3, 1e3]$ and $T_o$ to $[250, 350] K$.
 
-### 2. Atmosphere Temperature Update
-- **Purpose**: Updates atmosphere temperature (T_a) based on heat flux, radiative flux, advection, diffusion, and turbulent mixing.
-- **Equation**:
+### _Atmosphere Temperature Update_
+- Updates atmosphere temperature ($T_a$) based on heat flux, radiative flux, advection, diffusion, and turbulent mixing.
+- $(T_a)^{n+1} = (T_a)^{n} + dt_{atm}·(α·(-Q/C_a + R_{atm}/C_a - adv_{atm} + diff_{atm} + mix_{atm} / C_a) + (1 - α)·(-Q / C_a + R_{atm} / C_a))$
+
+  ```
   T_a^(n+1) = T_a^n + atm_dt * (α * (-Q / C_a + R_atm / C_a - adv_atm + diff_atm + mix_atm / C_a) + (1 - α) * (-Q / C_a + R_atm / C_a))
+  ```
   where:
-  - Q is heat flux (negative for atmosphere due to coupling).
-  - R_atm is radiative flux.
-  - adv_atm is advection.
-  - diff_atm is diffusion.
-  - mix_atm is turbulent mixing.
-  - C_a is atmosphere heat capacity (J/kg/K).
-  - atm_dt = dt * atm_time_scale (s).
-- **Implementation**: Clips terms to [-1e3, 1e3] and T_a to [250, 350] K.
+  - $Q$ is heat flux (negative for atmosphere due to coupling).
+  - $R_{atm}$ is radiative flux.
+  - $adv_{atm}$ is advection.
+  - $diff_{atm}$ is diffusion.
+  - $mix_{atm}$ is turbulent mixing.
+  - $C_a$ is atmosphere heat capacity (J/kg/K).
+  - $dt_{atm} = dt$·($atm$ $time$ $scale$).
+- **Implementation**: Clips terms to $[-1e3, 1e3]$ and $T_a$ to $[250, 350] K$.
 
-### 3. Salinity Update
-- **Purpose**: Updates salinity (S) based on freshwater flux, diffusion, and turbulent mixing.
-- **Equation**:
+### _Salinity Update_
+- Updates salinity ($S$) based on freshwater flux, diffusion, and turbulent mixing.
+- $S^{n+1} = S^n + dt·(dS/dt + diff_{salinity} + mix_{ocean})$
+
+  ```
   S^(n+1) = S^n + dt * (dS/dt + diff_salinity + mix_ocean)
+  ```
   where:
-  - dS/dt is salinity change from `TwoWayCoupling.compute_freshwater_flux`.
-  - diff_salinity is diffusion.
-  - mix_ocean is turbulent mixing.
-- **Implementation**: Clips terms to [-1e-2, 1e-2] and S to [30, 40] psu.
+  - $dS/dt$ is salinity change from `TwoWayCoupling.compute_freshwater_flux`.
+  - $diff_{salinity}$ is diffusion.
+  - $mix_{ocean}$ is turbulent mixing.
+- **Implementation**: Clips terms to $[-1e-2, 1e-2]$ and $S$ to $[30, 40] psu$.
 
-### 4. Moisture Update
-- **Purpose**: Updates atmospheric moisture (q) based on advection and freshwater flux.
-- **Equation**:
+### _Moisture Update_
+- Updates atmospheric moisture ($q$) based on advection and freshwater flux.
+- $q^{n+1} = q^n + dt·(M_{adv} - F_{freshwater})$
+
+  ```
   q^(n+1) = q^n + dt * (M_adv - F_freshwater)
+  ```
   where:
-  - M_adv is moisture advection from `TwoWayCoupling.compute_moisture_advection`.
-  - F_freshwater is freshwater flux.
-- **Implementation**: Clips terms to [-1e-4, 1e-4] and q to [0, 0.05].
+  - $M_{adv}$ is moisture advection from `TwoWayCoupling.compute_moisture_advection`.
+  - $F_{freshwater} is freshwater flux.
+- **Implementation**: Clips terms to $[-1e-4, 1e-4]$ and $q$ to $[0, 0.05]$.
 
-### 5. CO₂ Concentration Updates
-- **Purpose**: Updates ocean and atmosphere CO₂ concentrations (CO₂_ocean, CO₂_atm) based on CO₂ flux and advection.
-- **Equations**:
+### _CO₂ Concentration Updates_
+- Updates ocean and atmosphere CO₂ concentrations ($(CO_{2})^{ocean}), $(CO_{2})^{atm}$) based on CO₂ flux and advection.
+- $(CO_{2}^{ocean})^{n+1} = (CO_{2}^{ocean})^{n} + dt·((F_{CO_{2}})^{ocean} + (adv_{CO_{2}})_{o})$
+  ```
   CO₂_ocean^(n+1) = CO₂_ocean^n + dt * (F_co2_ocean + adv_co2_o)
-  CO₂_atm^(n+1) = CO₂_atm^n + dt * (F_co2_atm + adv_co2_a)
+  ```
+  $(CO_{{2}^{atm}})^{n+1} = (CO_{2}^{atm})^n + dt·((F_{CO_{2}})^{atm} + (adv_{CO_{2}}_{a})$
   where:
-  - F_co2_ocean, F_co2_atm are CO₂ fluxes from `TwoWayCoupling.compute_co2_flux`.
-  - adv_co2_o, adv_co2_a are advection terms.
-- **Implementation**: Clips terms to [-1e-2, 1e-2], CO₂_ocean to [0, 10], and CO₂_atm to [200, 1000] ppm.
+  - $(F_{CO_{2}})^{ocean}$, $(F_{CO_{2}})^{atm}$ are CO₂ fluxes from `TwoWayCoupling.compute_co2_flux`.
+  - $(adv_{CO_{2}})_{o})$, $(adv_{CO_{2}}_{a})$ are advection terms.
+- **Implementation**: Clips terms to $[-1e-2, 1e-2]$, $CO_{2}^{ocean}$ to $[0, 10]$, and $CO_{{2}^{atm}}$ to $[200, 1000] ppm$.
 
-### 6. Ocean Velocity Update
-- **Purpose**: Updates ocean velocities (u_ocean, v_ocean) based on momentum flux.
-- **Equations**:
+### _Ocean Velocity Update_
+- Updates ocean velocities ($u_{ocean}, v_{ocean}$) based on momentum flux.
+- $u_{ocean}^{n+1} = u_{ocean}^{n} + dt_{ocean}·τ/ρ_{water}$
+
+  ```
   u_ocean^(n+1) = u_ocean^n + ocean_dt * τ / ρ_water
+  ```
+  $v_{ocean}^{n+1} = v_{ocean}^{n} + dt_{ocean}·τ/ρ_{water}$
+  ```
   v_ocean^(n+1) = v_ocean^n + ocean_dt * τ / ρ_water
+  ```
   where:
-  - τ is momentum flux from `TwoWayCoupling.compute_momentum_flux` (N/m²).
-  - ρ_water = 1025 kg/m³ (from `TwoWayCoupling`).
+  - $τ$ is momentum flux from `TwoWayCoupling.compute_momentum_flux` (N/m²).
+  - $ρ_{water} = 1025 kg/m^{3}$ (from `TwoWayCoupling`).
 - **Implementation**: Clips velocities to [-10, 10] m/s.
 
-### 7. Advection
-- **Purpose**: Computes advection for any field (T, S, CO₂).
-- **Equation**:
+### _Advection_
+- Computes advection for any field ($T, S, CO_{2}$).
+- $∂T/∂t = -u·(∂T/∂x) - v·(∂T/∂y)$
+  ```
   ∂T/∂t = -u * ∂T/∂x - v * ∂T/∂y
+  ```
+  $∂T/∂x ≈ (T_{i+1,j} - T_{i-1,j})/(2·dx_{i,})$
+  ```
   ∂T/∂x ≈ (T_(i+1,j) - T_(i-1,j)) / (2 * dx_i,j)
+  ```
+  $∂T/∂y ≈ (T_{i,j+1} - T_{i,j-1})/(2·dy_{i,j})
+  ```
   ∂T/∂y ≈ (T_(i,j+1) - T_(i,j-1)) / (2 * dy_i,j)
+  ```
 - **Implementation**: Uses central differences, supports array-based or scalar velocities, and clips output to [-1e5, 1e5].
 
-### 8. Diffusion
-- **Purpose**: Computes diffusion for temperature or salinity fields.
-- **Equation**:
-  ∂T/∂t = D * ∇²T
-  ∇²T ≈ (T_(i+1,j) - 2*T_i,j + T_(i-1,j)) / dx_i,j² + (T_(i,j+1) - 2*T_i,j + T_(i,j-1)) / dy_i,j²
-  where D = 1e-6 m²/s.
-- **Implementation**: Uses central differences and clips output to [-1e5, 1e5].
+### _Diffusion_
+- Computes diffusion for temperature or salinity fields.
+- $∂T/∂t = D·∇^{2}·T$
+
+  $∇^{2}·T ≈ (T_{i+1,j} - 2T_{i,j} + T_{i-1,j})/dx_{i,j}^{2} + (T_{i,j+1} - 2T_{i,j} + T_{i,j-1})/dy_{i,j}^{2}$
+  ```
+  ∇²T ≈ (T_(i+1,j) - 2*T_i,j + T_(i-1,j))/(dx_i,j)² + (T_(i,j+1) - 2*T_i,j + T_(i,j-1))/(dy_i,j)²
+  ```
+  where $D = 1e-6 m^2/s$
+- **Implementation**: Uses central differences and clips output to $[-1e5, 1e5]$.
 
 ## Algorithms
 
