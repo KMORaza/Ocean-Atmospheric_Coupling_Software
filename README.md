@@ -378,7 +378,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
    - Initializes physical and numerical parameters, including time scales for ocean and atmosphere.
 
 - **Time Stepping**:
-   - Advances the simulation using different time steps for ocean ($dt$·($ocean$ $time$ $scale$)) and atmosphere ($dt$·($atm$ $time $scale$)).
+   - Advances the simulation using different time steps for ocean ($dt$·($ocean$ $time$ $scale$)) and atmosphere ($dt$·($atm$ $time$ $scale$)).
    - Updates fields by computing fluxes (heat, momentum, freshwater, CO₂), advection, diffusion, and turbulent mixing.
    - Applies numerical stability constraints (e.g., clipping temperatures to 250–350 K).
 
@@ -411,7 +411,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 ### _Time Stepping (step Method)_
 - **Purpose**: Advances the simulation by one time step, updating all fields.
 - **Process**:
-  1. Copies current fields ($T_o, T_a, S, u_{ocean}, v_{ocean}, q, (CO_{2}^{ocean}, (CO_{2}^{atm}) to avoid in-place modifications.
+  1. Copies current fields ($T_o, T_a, S, u_{ocean}, v_{ocean}, q, (CO_{2}^{ocean}, (CO_{2}^{atm}$) to avoid in-place modifications.
   2. Computes a refinement mask using `AdaptiveMeshRefinement.compute_refinement` based on temperature gradients or vorticity.
   3. Updates fields on the nested grid (if enabled) using `NestedGrid.update`.
   4. Defines time-varying atmosphere velocities:
@@ -419,15 +419,18 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
        ```
        u_atm = adv_velocity * cos(2 * π * step * dt / total_time)
        ```
-     - v_atm = adv_velocity * sin(2 * π * step * dt / total_time)
+     - $v_{atm} = velocity_{adv}·sin(2π·stepdt/$ $total$ $time$)
+       ```
+       v_atm = adv_velocity * sin(2 * π * step * dt / total_time)
+       ```
   5. Computes fluxes and mixing using `TwoWayCoupling`:
-     - Heat flux (Q) using T_a, T_o, u_ocean, v_ocean.
-     - Radiative flux (R_ocean, R_atm) using T_o, T_a, and CO₂_atm.
-     - Freshwater flux (dS/dt, F_freshwater) using S and q.
-     - Momentum flux (τ) using wind_speed, u_ocean, v_ocean.
-     - Moisture advection (M_adv) using q, dx, dy, u_atm, v_atm.
-     - Turbulent mixing (mix_ocean, mix_atm) using T_o, T_a, S, dx, dy, wind_speed.
-     - CO₂ flux (F_co2_ocean, F_co2_atm) using CO₂_ocean, CO₂_atm.
+     - Heat flux ($Q$) using $T_a, T_o, u_{ocean}, v_{ocean}$.
+     - Radiative flux ($R_{ocean}, R_{atm}) using $T_o$, $T_a$, and $CO_{2}^{atm}$.
+     - Freshwater flux ($dS/dt$, $F_{freshwater}$) using $S$ and $q$.
+     - Momentum flux ($τ$) using wind speed, $u_{ocean}$, $v_{ocean}$.
+     - Moisture advection ($M_{adv}$) using $q, dx, dy, u_{atm}, v_{atm}$.
+     - Turbulent mixing ($mix_{ocean}, mix_{atm}$) using $T_o, T_a, S, dx, dy$, wind speed.
+     - CO_{2} flux (F_{CO_{2}}^{ocean}, F_co2_atm) using CO₂_ocean, CO₂_atm.
   6. Updates ocean velocities:
      - u_new = u_ocean + ocean_dt * τ / ρ_water
      - v_new = v_ocean + ocean_dt * τ / ρ_water
