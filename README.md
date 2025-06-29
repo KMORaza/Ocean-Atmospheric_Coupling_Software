@@ -97,7 +97,7 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 
   where $u_*$ is friction velocity, $C_{d}$ is drag coefficient, $U$ is wind speed, $ρ_{air} = 1.225 kg/m^{3}$, $ρ_{water} = 1025 kg/m^{3}$, $α = 0.018$, $g = 9.81 m/s^{2}$, and $z_{0}$ is roughness length.
 
-- **Implementation**: `compute_sea_surface_roughness` clips $z_0$ to [1e-6, 1e-2] and $C_{d}'$ to [1e-4, 1e-2].
+- **Implementation**: `compute_sea_surface_roughness` clips $z_0$ to $[1e-6, 1e-2]$ and $C_{d}'$ to $[1e-4, 1e-2]$.
 
 #### Momentum Flux
 - **Purpose**: Computes wind stress on the ocean surface.
@@ -132,7 +132,7 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 
   $dS/dt = -S·F/(ρ_{water}·H)$
 
-  where $P_{0}$ is precipitation rate, $E_0$ is evaporation rate, $C_{freshwater} is the conservation coefficient, $S$ is salinity, $H$ = 1000 m is ocean depth, and $q$ is moisture.
+  where $P_{0}$ is precipitation rate, $E_0$ is evaporation rate, $C_{freshwater$} is the conservation coefficient, $S$ is salinity, $H$ = 1000 m is ocean depth, and $q$ is moisture.
 
 - **Implementation**: `compute_freshwater_flux` clips $q/0.01$ to $[0, 2]$, $S/35$ to $[0.8, 1.2]$, and outputs to $[-1e-3, 1e-3]$.
 
@@ -172,7 +172,7 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 
 #### Radiative Flux
 - **Purpose**: Models solar and longwave radiation with greenhouse effects.
-- **Equation**: $Q_{rad} = Q_{solar} - ε * σ * (T / 300)^4 * (1 + 0.1 * log(CO₂_{atm} / 400))$ where $σ = 5.67e-8 W/m^{2}/K^{4}$, $ε$ is longwave coefficient, and $Q_{solar}$ is solar forcing.
+- **Equation**: $Q_{rad} = Q_{solar} - ε·σ·(T/300)^{4}·(1 + 0.1log(CO₂_{atm}/400))$ where $σ = 5.67e-8 W/m^{2}/K^{4}$, $ε$ is longwave coefficient, and $Q_{solar}$ is solar forcing.
 - **Implementation**: `compute_radiative_flux` clips $T/300$ to $[0.8, 1.2]$, $log(CO₂_{atm}/400)$ to $[-1, 1]$, and output to $[-1e6, 1e6]$ $W/m^2$.
 
 ### 2. Ocean-Atmosphere Model 
@@ -181,7 +181,7 @@ The `OceanAtmosphereModel` integrates physical processes over time.
 #### Initialization
 - Sets up a 2D grid (N x N) with initial conditions:
 
-  $T_o = T_{base} + ΔT*sin(2πy/N)$
+  $T_o = T_{base} + ΔT·sin(2πy/N)$
 
   $T_a = T_o - 5$
 
@@ -196,21 +196,21 @@ The `OceanAtmosphereModel` integrates physical processes over time.
 #### Time Stepping
 - **Ocean Update**:
   
-  $T_{o}^{n+1} = T_{o}^{n} + dt*(-u_{o}·∇T_{o} + k * ∇^{2}·T_{o} + (Q_{total} + Q_{rad}) / (ρ_{water}*C_{p_{water}} * H))$
+  $T_{o}^{n+1} = T_{o}^{n} + dt·(-u_{o}·∇T_{o} + k * ∇^{2}·T_{o} + (Q_{total} + Q_{rad})/(ρ_{water}·C_{p_{water}}·H))$
 
-  $S^{n+1} = S^n + dt*dS/dt$
+  $S^{n+1} = S^n + dt·dS/dt$
 
-  $u_{o}^{n+1} = u_{o}^{n} + dt*(τ/(ρ_{water}H) - f*u_{o}^{⊥} + k·∇^{2}·u_{o})$
+  $u_{o}^{n+1} = u_{o}^{n} + dt·(τ/(ρ_{water}H) - f·u_{o}^{⊥} + k·∇^{2}·u_{o})$
 
   where $k$ is diffusion coefficient, $f = 1e-4 s^{-1}$ is Coriolis parameter, and $∇^2$ is computed via central differences.
 
 - **Atmosphere Update**:
 
-  $T_{a}^{n+1} = T_{a}^{n} + dt/R*(-u_{a}·∇T_{a} + k·∇^{2}·T_{a} - (Q_{total} + Q_{rad}) / (ρ_{air} * C_{p}^{air} * H_{atm}))$
+  $T_{a}^{n+1} = T_{a}^{n} + dt/R·(-u_{a}·∇T_{a} + k·∇^{2}·T_{a} - (Q_{total} + Q_{rad})/(ρ_{air}·C_{p}^{air}·H_{atm}))$
 
   $q^{n+1} = q^n + dt/R * (Advection + k·∇^{2}·q + F/H_{atm})$
 
-  $CO₂_{atm}^{n+1} = CO₂_{atm}^{n} + dt/R * F_{CO₂}^{atm}$
+  $CO₂_{atm}^{n+1} = CO₂_{atm}^{n} + dt/R·F_{CO₂}^{atm}$
 
   where $R$ is the time scale ratio.
 
@@ -228,7 +228,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 - **Implementation**: `BoundaryLayerSchemesWindow.compute_kpp_diffusivity` and `HighOrderTimeSteppingWindow.compute_kpp`.
 
 #### Time Stepping (`HighOrderTimeStepping.py`)
-- **Euler Method**: $y^{n+1} = y^{n} + dt*f(y^{n})$ where $f$ is the flux or diffusivity rate.
+- **Euler Method**: $y^{n+1} = y^{n} + dt·f(y^{n})$ where $f$ is the flux or diffusivity rate.
 - **RK4 Method**:
 
   $k_1 = f(y^n)$;
@@ -244,14 +244,14 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 - **Implementation**: `HighOrderTimeSteppingWindow.euler_step` and `rk4_step`.
 
 ### 4. Turbulent Mixing (`TurbulentMixing.py`)
-- **Thermal Front**: $T_{front} = T_{cold} + (T_{hot} - T_{cold}) * 0.5 * (1 + tanh((x-x_{0})/L))$ where $T_{cold} = 290 K$, $T_{hot} = 300 K$, $x_{0} = $N_{x}/2 + 10 * sin(0.01 Ut)$, and $L = 5$.
+- **Thermal Front**: $T_{front} = T_{cold} + (T_{hot} - T_{cold})·0.5·(1 + tanh((x-x_{0})/L))$ where $T_{cold} = 290 K$, $T_{hot} = 300 K$, $x_{0} = $N_{x}/2 + 10·sin(0.01 Ut)$, and $L = 5$.
 - **Ekman Spiral**:
 
   $u = V_{0}·e^{z/d}·cos(π/4 + z/d)$
 
   $v = V_{0}·e^{z/d}·sin(π/4 + z/d)$
 
-  $V_{0} = τ / (ρ*sqrt(2νf))$
+  $V_{0} = τ / (ρ·sqrt(2νf))$
 
   $d = sqrt(2ν/f)$
 
@@ -269,9 +269,9 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 
 ### 5. Surface Layer Physics (`SurfaceLayerPhysics.py`)
 - **Sensible Heat Flux**: $Q_s = ρ_{air}·C_p·C_h·U(T_o - T_a)$
-- **Latent Heat Flux**: $Q_l = ρ_{air} * L_v * C_e * U * q$ where $q = 0.001$, $C_e$ is latent heat coefficient.
+- **Latent Heat Flux**: $Q_l = ρ_{air}·L_{v}·C_{e}·U·q$ where $q = 0.001$, $C_e$ is latent heat coefficient.
 - **Wind Stress**: $τ = ρ_{air}·C_d·U^2$
-- **Surface Currents**: $u_{s}^{n+1} = u_{s}^{n} + dt*(τ/1000)*N(0, ν)$ where $N$ is Gaussian noise scaled by mixing coefficient.
+- **Surface Currents**: $u_{s}^{n+1} = u_{s}^{n} + dt·(τ/1000)·N(0, ν)$ where $N$ is Gaussian noise scaled by mixing coefficient.
 - **Implementation**: `update_plot` computes fluxes and updates currents, clipped to $[-0.5, 0.5] m/s$.
 
 ### 6. Air-Sea Interaction (`AirSeaInteraction.py`)
@@ -290,14 +290,14 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 - **Implementation**: `update_plot` computes cloud cover and precipitation based on moisture and temperature.
 
 ### 8. Potential Vorticity Frontogenesis 
-- **Potential Vorticity**: $q = (ζ + f)*(db/dz)/N^2$; $db/dz ≈ b/H_{m}$ where $ζ$ is vorticity, $f$ is Coriolis parameter, $b$ is buoyancy, $H_{m}$ is mixed layer depth, and $N^{2}$ is stratification parameter.
+- **Potential Vorticity**: $q = (ζ + f)·(db/dz)/N^2$; $db/dz ≈ b/H_{m}$ where $ζ$ is vorticity, $f$ is Coriolis parameter, $b$ is buoyancy, $H_{m}$ is mixed layer depth, and $N^{2}$ is stratification parameter.
 - **Frontogenesis**:
 
   $F = -|∇q|^{2}·D$
 
-  $q^{n+1} = q^{n} + 0.1*F$
+  $q^{n+1} = q^{n} + 0.1F$
 
-  $dζ/dt = 0.1*F$
+  $dζ/dt = 0.1F$
 
   where $D$ is deformation rate, and gradients are computed via central differences.
 - **Implementation**: `compute_pv_frontogenesis` updates PV and returns vorticity tendency, clipped to [-0.1, 0.1].
@@ -327,7 +327,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 
   $∂φ/∂t = -u·∇φ$
 
-  $∂φ/∂x ≈ (φ_{i+1,j} - φ_{i-1,j}) / (2*dx_{i,j})$
+  $∂φ/∂x ≈ (φ_{i+1,j} - φ_{i-1,j}) / (2·dx_{i,j})$
 
   - Uses central differences for spatial derivatives.
 - **Diffusion**:
