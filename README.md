@@ -400,13 +400,13 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 
 - **Purpose**: Sets up the initial state of the ocean and atmosphere fields and configures numerical and physical parameters.
 - **Process**:
-  - Initializes 2D arrays for ocean temperature ($T_o$), atmosphere temperature ($T_a$), salinity ($S$), ocean velocities ($u_{ocean}$, $v_{ocean}$), moisture ($q$), and CO₂ concentrations ($CO₂_{ocean}$, $CO₂_{atm}$) with default values (e.g., $T_o = ocean_{temp}, T_a = atm_{temp}, S = 35.0 psu, q = 0.01, CO₂_{atm} = 400.0 ppm$).
+  - Initializes 2D arrays for ocean temperature ($T_o$), atmosphere temperature ($T_a$), salinity ($S$), ocean velocities ($u_{ocean}$, $v_{ocean}$), moisture ($q$), and CO₂ concentrations ($CO_{2}^{ocean}$, $CO_{2}^{atm}$) with default values (e.g., $T_o = temp_{ocean}, T_a = temp_{atm}, S = 35.0 psu, q = 0.01, CO_{2}^{atm} = 400.0 ppm$).
   - Clips initial fields to physical ranges (e.g., $T_o, T_a$ to $[250, 350] K, S$ to $[30, 40] psu$).
   - Creates a `VariableResolutionGrid` instance to define spatially variable $dx$ and $dy$ (finer near coasts).
   - Optionally initializes a `NestedGrid` for high-resolution subdomains.
   - Sets up an `AdaptiveMeshRefinement` instance for dynamic grid refinement.
   - Configures a `TwoWayCoupling` instance with parameters for drag coefficient, wind speed, precipitation, evaporation, solar forcing, longwave coefficient, mixing coefficient, and CO₂ transfer coefficient.
-  - Applies different time scales for ocean ($ocean_{dt} = dt$·($ocean$ $time$ $scale)) and atmosphere ($atm_{dt} = dt$·($atm$ $time$ $scale$)), with defaults of 1.0 and 0.1, respectively.
+  - Applies different time scales for ocean ($dt_{ocean} = dt$·($ocean$ $time$ $scale$)) and atmosphere ($dt_{atm} = dt$·($atm$ $time$ $scale$)), with defaults of 1.0 and 0.1, respectively.
 
 ### _Time Stepping (step Method)_
 - **Purpose**: Advances the simulation by one time step, updating all fields.
@@ -430,14 +430,23 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
      - Momentum flux ($τ$) using wind speed, $u_{ocean}$, $v_{ocean}$.
      - Moisture advection ($M_{adv}$) using $q, dx, dy, u_{atm}, v_{atm}$.
      - Turbulent mixing ($mix_{ocean}, mix_{atm}$) using $T_o, T_a, S, dx, dy$, wind speed.
-     - CO₂ flux ($F_{CO_{2}}^{ocean}$, F_co2_atm) using CO₂_ocean, CO₂_atm.
+     - CO₂ flux ($F_{CO_{2}}^{ocean}$, $F_{CO_{2}}^{atm}$) using $CO_{2}^{ocean}, CO_{2}^{atm}$.
   6. Updates ocean velocities:
-     - u_new = u_ocean + ocean_dt * τ / ρ_water
-     - v_new = v_ocean + ocean_dt * τ / ρ_water
-  7. Computes advection for T_o, T_a, S, CO₂_ocean, CO₂_atm using `compute_advection`.
-  8. Computes diffusion for T_o, T_a, S using `compute_diffusion`.
-  9. Updates fields using a semi-implicit scheme (α = 0.5):
-     - T_o_new = T_o + ocean_dt * (α * (Q / C_o + R_ocean / C_o - adv_ocean + diff_ocean + mix_ocean / C_o) + (1 - α) * (Q / C_o + R_ocean / C_o))
+     - $u_{new} = u_{ocean} + dt_{ocean}·τ/ρ_{water}$
+       ```
+       u_new = u_ocean + ocean_dt * τ / ρ_water
+       ```
+     - $v_{new} = v_{ocean} + dt_{ocean}·τ/ρ_{water}$
+       ```
+       v_new = v_ocean + ocean_dt * τ / ρ_water
+       ```
+  7. Computes advection for $T_o$, $T_a$, $S$, $CO_{2}^{ocean}$, $CO_{2}^{atm}$ using `compute_advection`.
+  8. Computes diffusion for $T_o$, T_a$, $S$ using `compute_diffusion`.
+  9. Updates fields using a semi-implicit scheme ($α = 0.5$):
+     - $(T_{o_{new}} = T_o + dt_{ocean}·(α·(Q/C_o + R_{ocean}/C_o - adv_{ocean} + diff_{ocean} + mix_{ocean}/C_o)+(1 - α)·(Q/C_o+R_{ocean}/C_o))$
+       ```
+       T_o_new = T_o + ocean_dt * (α * (Q / C_o + R_ocean / C_o - adv_ocean + diff_ocean + mix_ocean / C_o) + (1 - α) * (Q / C_o + R_ocean / C_o))
+       ```
      - T_a_new = T_a + atm_dt * (α * (-Q / C_a + R_atm / C_a - adv_atm + diff_atm + mix_atm / C_a) + (1 - α) * (-Q / C_a + R_atm / C_a))
      - S_new = S + dt * (dS/dt + diff_salinity + mix_ocean)
      - q_new = q + dt * (M_adv - F_freshwater)
