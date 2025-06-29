@@ -373,12 +373,12 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 ## Ozean-Atmosphären-Modell (Ocean-Atmosphere Model)
 
 - **Initialization of Fields**:
-   - Sets up a 2D grid ($NxN$) with initial conditions for ocean temperature ($T_o$), atmosphere temperature ($T_a$), salinity ($S$), ocean velocities ($u_{ocean}, v_{ocean}$), moisture ($q$), and CO₂ concentrations ($CO₂_{ocean}, CO₂_{atm}$).
+   - Sets up a 2D grid ($NxN$) with initial conditions for ocean temperature ($T_o$), atmosphere temperature ($T_a$), salinity ($S$), ocean velocities ($u_{ocean}, v_{ocean}$), moisture ($q$), and CO₂ concentrations ($CO_{2}^{ocean}, CO_{2}^{atm}$).
    - Configures variable resolution grids, nested grids (optional), and adaptive mesh refinement (AMR).
    - Initializes physical and numerical parameters, including time scales for ocean and atmosphere.
 
 - **Time Stepping**:
-   - Advances the simulation using different time steps for ocean ($dt·ocean$$time$$scale$$) and atmosphere (dt * atm_time_scale).
+   - Advances the simulation using different time steps for ocean ($dt·ocean_ time_ scale$) and atmosphere (dt * atm_time_scale).
    - Updates fields by computing fluxes (heat, momentum, freshwater, CO₂), advection, diffusion, and turbulent mixing.
    - Applies numerical stability constraints (e.g., clipping temperatures to 250–350 K).
 
