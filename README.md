@@ -132,7 +132,7 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 
   $dS/dt = -S·F/(ρ_{water}·H)$
 
-  where $P_{0}$ is precipitation rate, $E_0$ is evaporation rate, $C_{freshwater$} is the conservation coefficient, $S$ is salinity, $H$ = 1000 m is ocean depth, and $q$ is moisture.
+  where $P_{0}$ is precipitation rate, $E_0$ is evaporation rate, $C_{freshwater}$ is the conservation coefficient, $S$ is salinity, $H$ = 1000 m is ocean depth, and $q$ is moisture.
 
 - **Implementation**: `compute_freshwater_flux` clips $q/0.01$ to $[0, 2]$, $S/35$ to $[0.8, 1.2]$, and outputs to $[-1e-3, 1e-3]$.
 
