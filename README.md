@@ -406,7 +406,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   - Optionally initializes a `NestedGrid` for high-resolution subdomains.
   - Sets up an `AdaptiveMeshRefinement` instance for dynamic grid refinement.
   - Configures a `TwoWayCoupling` instance with parameters for drag coefficient, wind speed, precipitation, evaporation, solar forcing, longwave coefficient, mixing coefficient, and CO₂ transfer coefficient.
-  - Applies different time scales for ocean ($ocean_{dt} = dt ocean_{time-scale}$) and atmosphere ($atm_{dt} = dt*atm_{time_scale), with defaults of 1.0 and 0.1, respectively.
+  - Applies different time scales for ocean ($ocean_{dt} = dt·ocean_ time_ scale}$) and atmosphere ($atm_{dt} = dt*atm_{time_scale), with defaults of 1.0 and 0.1, respectively.
 
 ### _Time Stepping (step Method)_
 - **Purpose**: Advances the simulation by one time step, updating all fields.
