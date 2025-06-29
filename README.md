@@ -415,13 +415,13 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
        ```
        u_atm = adv_velocity * cos(2 * π * step * dt / total_time)
        ```
-     - $v_{atm} = velocity_{adv}·sin(2π·stepdt/$ $total$ $time$)
+     - $v_{atm} = velocity_{adv}·sin(2π·step·dt/$ $total$ $time$)
        ```
        v_atm = adv_velocity * sin(2 * π * step * dt / total_time)
        ```
   5. Computes fluxes and mixing using `TwoWayCoupling`:
      - Heat flux ($Q$) using $T_a, T_o, u_{ocean}, v_{ocean}$.
-     - Radiative flux ($R_{ocean}, R_{atm}) using $T_o$, $T_a$, and $CO_{2}^{atm}$.
+     - Radiative flux ($R_{ocean}, R_{atm}$) using $T_o$, $T_a$, and $CO_{2}^{atm}$.
      - Freshwater flux ($dS/dt$, $F_{freshwater}$) using $S$ and $q$.
      - Momentum flux ($τ$) using wind speed, $u_{ocean}$, $v_{ocean}$.
      - Moisture advection ($M_{adv}$) using $q, dx, dy, u_{atm}, v_{atm}$.
@@ -437,7 +437,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
        v_new = v_ocean + ocean_dt * τ / ρ_water
        ```
   7. Computes advection for $T_o$, $T_a$, $S$, $CO_{2}^{ocean}$, $CO_{2}^{atm}$ using `compute_advection`.
-  8. Computes diffusion for $T_o$, T_a$, $S$ using `compute_diffusion`.
+  8. Computes diffusion for $T_o$, $T_a$, $S$ using `compute_diffusion`.
   9. Updates fields using a semi-implicit scheme ($α = 0.5$):
      - $(T_{o_{new}} = T_o + dt_{ocean}·(α·(Q/C_o + R_{ocean}/C_o - adv_{ocean} + diff_{ocean} + mix_{ocean}/C_o)+(1 - α)·(Q/C_o+R_{ocean}/C_o))$
        
