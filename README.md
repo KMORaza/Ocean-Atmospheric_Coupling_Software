@@ -430,7 +430,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
      - Momentum flux ($τ$) using wind speed, $u_{ocean}$, $v_{ocean}$.
      - Moisture advection ($M_{adv}$) using $q, dx, dy, u_{atm}, v_{atm}$.
      - Turbulent mixing ($mix_{ocean}, mix_{atm}$) using $T_o, T_a, S, dx, dy$, wind speed.
-     - CO_{2} flux (F_{CO_{2}}^{ocean}, F_co2_atm) using CO₂_ocean, CO₂_atm.
+     - CO₂ flux ($F_{CO_{2}}^{ocean}$, F_co2_atm) using CO₂_ocean, CO₂_atm.
   6. Updates ocean velocities:
      - u_new = u_ocean + ocean_dt * τ / ρ_water
      - v_new = v_ocean + ocean_dt * τ / ρ_water
