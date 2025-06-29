@@ -408,7 +408,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   - Configures a `TwoWayCoupling` instance with parameters for drag coefficient, wind speed, precipitation, evaporation, solar forcing, longwave coefficient, mixing coefficient, and CO₂ transfer coefficient.
   - Applies different time scales for ocean ($dt_{ocean} = dt$·($ocean$ $time$ $scale$)) and atmosphere ($dt_{atm} = dt$·($atm$ $time$ $scale$)), with defaults of 1.0 and 0.1, respectively.
 
-### _Time Stepping (step Method)_
+### _Time Stepping (step method)_
 - **Purpose**: Advances the simulation by one time step, updating all fields.
 - **Process**:
   1. Copies current fields ($T_o, T_a, S, u_{ocean}, v_{ocean}, q, (CO_{2}^{ocean}, (CO_{2}^{atm}$) to avoid in-place modifications.
@@ -468,7 +468,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
        ```
        C_o_new = CO₂_ocean + dt * (F_co2_ocean + adv_co2_o)
        ```
-     - $C_{a_{new}} = CO_{2}^{atm} + dt·(F_{CO_{2}^{atm} + adv_{(CO_{2})_{a}})$
+     - $C_{a_{new}} = CO_{2}^{atm} + dt·(F_{CO_{2}^{atm}} + adv_{(CO_{2})_{a}})$
     
        ```
        C_a_new = CO₂_atm + dt * (F_co2_atm + adv_co2_a)
@@ -485,7 +485,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
       ```
       ∂T/∂t = -u * ∂T/∂x - v * ∂T/∂y
       ```
-    - $∂T/∂x ≈ {T_{i+1,j} - T_{i-1,j})/(2·dx_{i,j})
+    - $∂T/∂x ≈ {T_{i+1,j} - T_{i-1,j})/(2·dx_{i,j})$
    
       ```
       ∂T/∂x ≈ (T_(i+1,j) - T_(i-1,j)) / (2 * dx_i,j)
@@ -569,15 +569,15 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 - **Implementation**: Clips terms to $[-1e-4, 1e-4]$ and $q$ to $[0, 0.05]$.
 
 ### _CO₂ Concentration Updates_
-- Updates ocean and atmosphere CO₂ concentrations ($(CO_{2})^{ocean}), $(CO_{2})^{atm}$) based on CO₂ flux and advection.
+- Updates ocean and atmosphere CO₂ concentrations ($(CO_{2})^{ocean}), ($CO_{2})^{atm}$) based on CO₂ flux and advection.
 - $(CO_{2}^{ocean})^{n+1} = (CO_{2}^{ocean})^{n} + dt·((F_{CO_{2}})^{ocean} + (adv_{CO_{2}})_{o})$
   ```
   CO₂_ocean^(n+1) = CO₂_ocean^n + dt * (F_co2_ocean + adv_co2_o)
   ```
-  $(CO_{{2}^{atm}})^{n+1} = (CO_{2}^{atm})^n + dt·((F_{CO_{2}})^{atm} + (adv_{CO_{2}}_{a})$
+  $(CO_{{2}^{atm}})^{n+1} = (CO_{2}^{atm})^{n} + dt·((F_{CO_{2}})^{atm} + (adv_{CO_{2}})_{a})$
   where:
   - $(F_{CO_{2}})^{ocean}$, $(F_{CO_{2}})^{atm}$ are CO₂ fluxes from `TwoWayCoupling.compute_co2_flux`.
-  - $(adv_{CO_{2}})_{o})$, $(adv_{CO_{2}}_{a})$ are advection terms.
+  - $(adv_{CO_{2}})__{o})$, $(adv_{CO_{2}}_{a})$ are advection terms.
 - **Implementation**: Clips terms to $[-1e-2, 1e-2]$, $CO_{2}^{ocean}$ to $[0, 10]$, and $CO_{{2}^{atm}}$ to $[200, 1000] ppm$.
 
 ### _Ocean Velocity Update_
