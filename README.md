@@ -89,7 +89,7 @@ The `TwoWayCoupling` class computes fluxes and mixing between the ocean and atmo
 - **Purpose**: Adjusts drag coefficient based on wind and ocean currents.
 - **Equation**:
   
-  $u_* = sqrt(ρ_{air}C_{d}U^{2}$/$ρ_{water})$
+  $u_* = sqrt(ρ_{air}C_{d}U^{2}$/ $ρ_{water})$
   
   $z_{0} = α(u_{*}^{2} + 0.1(u_{ocean}^{2} + v_{ocean}^{2}))/g$
 
