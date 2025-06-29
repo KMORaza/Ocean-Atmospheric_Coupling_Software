@@ -378,7 +378,7 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
    - Initializes physical and numerical parameters, including time scales for ocean and atmosphere.
 
 - **Time Stepping**:
-   - Advances the simulation using different time steps for ocean ($dt$·($ocean$ $time$ $scale$)) and atmosphere ($d$t·($atm$ $time $scale$)).
+   - Advances the simulation using different time steps for ocean ($dt$·($ocean$ $time$ $scale$)) and atmosphere ($dt$·($atm$ $time $scale$)).
    - Updates fields by computing fluxes (heat, momentum, freshwater, CO₂), advection, diffusion, and turbulent mixing.
    - Applies numerical stability constraints (e.g., clipping temperatures to 250–350 K).
 
@@ -406,16 +406,19 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
   - Optionally initializes a `NestedGrid` for high-resolution subdomains.
   - Sets up an `AdaptiveMeshRefinement` instance for dynamic grid refinement.
   - Configures a `TwoWayCoupling` instance with parameters for drag coefficient, wind speed, precipitation, evaporation, solar forcing, longwave coefficient, mixing coefficient, and CO₂ transfer coefficient.
-  - Applies different time scales for ocean ($ocean_{dt} = dt·ocean_ time_ scale}$) and atmosphere ($atm_{dt} = dt*atm_{time_scale), with defaults of 1.0 and 0.1, respectively.
+  - Applies different time scales for ocean ($ocean_{dt} = dt$·($ocean$ $time$ $scale)) and atmosphere ($atm_{dt} = dt$·($atm$ $time$ $scale$)), with defaults of 1.0 and 0.1, respectively.
 
 ### _Time Stepping (step Method)_
 - **Purpose**: Advances the simulation by one time step, updating all fields.
 - **Process**:
-  1. Copies current fields (T_o, T_a, S, u_ocean, v_ocean, q, CO₂_ocean, CO₂_atm) to avoid in-place modifications.
+  1. Copies current fields ($T_o, T_a, S, u_{ocean}, v_{ocean}, q, (CO_{2}^{ocean}, (CO_{2}^{atm}) to avoid in-place modifications.
   2. Computes a refinement mask using `AdaptiveMeshRefinement.compute_refinement` based on temperature gradients or vorticity.
   3. Updates fields on the nested grid (if enabled) using `NestedGrid.update`.
   4. Defines time-varying atmosphere velocities:
-     - u_atm = adv_velocity * cos(2 * π * step * dt / total_time)
+     - $u_{atm} = velocity_{adv}·cos(2π·step·dt/$ $total$ $time$)
+       ```
+       u_atm = adv_velocity * cos(2 * π * step * dt / total_time)
+       ```
      - v_atm = adv_velocity * sin(2 * π * step * dt / total_time)
   5. Computes fluxes and mixing using `TwoWayCoupling`:
      - Heat flux (Q) using T_a, T_o, u_ocean, v_ocean.
