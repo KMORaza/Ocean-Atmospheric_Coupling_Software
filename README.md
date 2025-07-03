@@ -1,12 +1,12 @@
 # Software zur Modellierung und Simulation der Ozean-Atmosphäre-Kopplung (Software for modeling and simulating Ocean-Atmosphere Coupling)
 
-_Die Software ist geschrieben in Python-Programmiersprache und simuliert Wechselwirkungen zwischen Ozean und Atmosphäre mit einem Schwerpunkt auf physikalischen Prozessen wie Wärme-, Impuls-, Süßwasser- und CO₂-Flüssen, turbulenter Mischung, Grenzschichtdynamik, Wolkenmikrophysik, Wechselwirkungen zwischen Luft und Meer sowie ozeanischen Wirbeln und Fronten._
+_Die Software ist geschrieben in Python-Programmiersprache und simuliert Wechselwirkungen zwischen Ozean und Atmosphäre mit einem Schwerpunkt auf physikalischen Prozessen wie Hitze, Impuls, Süßwasser-Flüssen und CO₂-Flüssen, turbulenter Mischung, Grenzschichtdynamik, Wolkenmikrophysik, Wechselwirkungen zwischen Luft und Meer sowie ozeanischen Wirbeln und Fronten._
 
 _The software, written in Python, simulates ocean-atmosphere interactions emphasizing physical processes such as heat, momentum, freshwater, and CO₂ fluxes, turbulent mixing, boundary layer dynamics, cloud microphysics, air-sea interactions, and oceanic eddies and fronts._
 
 ## Funktionalitäten (Functionalities)
 
-The ocean-atmosphere coupling aoftware is a numerical simulation software designed to model interactions between the ocean and atmosphere. It supports 2D simulations with variable resolution grids, adaptive mesh refinement, and two-way coupling for physical interactions. 
+The ocean-atmosphere coupling software is a numerical simulation software designed to model interactions between the ocean and atmosphere. It supports 2D simulations with variable resolution grids, adaptive mesh refinement, and two-way coupling for physical interactions. 
 
 1. **Core Simulation**:
    - Simulates coupled ocean-atmosphere dynamics on a 2D grid with variable time steps for ocean and atmosphere.
@@ -631,7 +631,11 @@ These modules model surface boundary layer processes using Bulk and KPP schemes.
 ![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(8).png)
 ![](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/Ocean-Atmosphere%20Coupling%20Model%20Software/screenshot/screen%20(9).png)
 
+---
 
+_Um den Mechanismus der Software zu verstehen, lesen Sie bitte das [Dokument](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/software-document.pdf), das ich habe geschrieben über die Simulationslogik, die Algorithmen, die Implementierung der Funktionalitäten, die Implementierung der Ozean-Atmosphären-Modell, und physikalischen und mathematischen Modelle verwendeten._
+
+_To know how the software functions, please read the [document](https://github.com/KMORaza/Ocean-Atmospheric_Coupling_Software/blob/main/software-document.pdf) I have written about the simulation logic, the algorithms, the implementation of functionalities, the implementation of the ocean-atmosphere model, and physical and mathematical models utilized._
 
 
 
