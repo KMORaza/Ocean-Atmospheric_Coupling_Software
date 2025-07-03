@@ -1,8 +1,8 @@
 # Software zur Modellierung und Simulation der Ozean-Atmosphäre-Kopplung (Software for modeling and simulating Ocean-Atmosphere Coupling)
 
-_Die Software is geschrieben in Python-Programmiersprache und simuliert Wechselwirkungen zwischen Ozean und Atmosphäre mit einem Schwerpunkt auf physikalischen Prozessen wie Wärme-, Impuls-, Süßwasser- und CO₂-Flüssen, turbulenter Mischung, Grenzschichtdynamik, Wolkenmikrophysik, Wechselwirkungen zwischen Luft und Meer sowie ozeanischen Wirbeln und Fronten._
+_Die Software ist geschrieben in Python-Programmiersprache und simuliert Wechselwirkungen zwischen Ozean und Atmosphäre mit einem Schwerpunkt auf physikalischen Prozessen wie Wärme-, Impuls-, Süßwasser- und CO₂-Flüssen, turbulenter Mischung, Grenzschichtdynamik, Wolkenmikrophysik, Wechselwirkungen zwischen Luft und Meer sowie ozeanischen Wirbeln und Fronten._
 
-_The software, written in Python, simulates ocean-atmosphere interactions with a focus on physical processes such as heat, momentum, freshwater, and CO₂ fluxes, turbulent mixing, boundary layer dynamics, cloud microphysics, air-sea interactions, and oceanic eddies and fronts._
+_The software, written in Python, simulates ocean-atmosphere interactions emphasizing physical processes such as heat, momentum, freshwater, and CO₂ fluxes, turbulent mixing, boundary layer dynamics, cloud microphysics, air-sea interactions, and oceanic eddies and fronts._
 
 ## Funktionalitäten (Functionalities)
 
